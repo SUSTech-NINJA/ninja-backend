@@ -3,22 +3,19 @@
 CREATE TABLE user (
     id TEXT PRIMARY KEY DEFAULT( uuid() ),
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
     settings JSON NOT NULL,
-    credit INTEGER NOT NULL
+    current INTEGER NOT NULL,
+    credit JSON NOT NULL
 );
 
 CREATE TABLE bots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    url TEXT NOT NULL,
     usage_limit INTEGER NOT NULL,
-    price INTEGER NOT NULL
-);
-
-CREATE TABLE settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    value TEXT NOT NULL
+    price INTEGER NOT NULL,
+    prompts JSON NOT NULL
 );
 
 CREATE TABLE session (
@@ -31,9 +28,9 @@ CREATE TABLE session (
 CREATE TABLE chats (
     id TEXT PRIMARY KEY DEFAULT( uuid() ),
     user_id TEXT NOT NULL,
-    conversation_name TEXT NOT NULL,
+    title TEXT NOT NULL,
     settings JSON NOT NULL,
-    messages JSON NOT NULL,
+    history JSON NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id)
 );
 

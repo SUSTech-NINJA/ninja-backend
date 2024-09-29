@@ -1,12 +1,17 @@
 import os
 import dotenv
-from flask import Flask, Blueprint
+from flask import Flask, Blueprint, g
 from flask_cors import CORS
 from flask_migrate import Migrate
 from app.config import Config
 from app.models import db, User
 
 from app.routes.auth import auth
+from app.routes.admin import admin
+from app.routes.chat import chat
+from app.routes.robots import robots
+from app.routes.shopping import shopping
+from app.routes.user import user
 
 migrate = Migrate()
 dotenv.load_dotenv()
@@ -33,6 +38,11 @@ def create_app():
 
     # register blueprints
     app.register_blueprint(auth)
+    app.register_blueprint(admin)
+    app.register_blueprint(chat)
+    app.register_blueprint(robots)
+    app.register_blueprint(shopping)
+    app.register_blueprint(user)
 
     cors = CORS(app, resources={r"/*": {"origins": "*"}})
 

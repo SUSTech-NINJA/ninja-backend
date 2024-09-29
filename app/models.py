@@ -47,7 +47,8 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
     settings = db.Column(JSON, nullable=True)
-    credit = db.Column(db.Integer, nullable=False, default=0)
+    current = db.Column(db.Integer, nullable=False, default=0)
+    credit = db.Column(JSON, nullable=True)
 
     def __repr__(self):
         return f'<User {self.username}>'
