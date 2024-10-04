@@ -80,5 +80,34 @@ def verify(token: str, userid: str) -> bool:
     return str(session.user_id) == userid or payload['admin']
 
 
-def get_user_by_id(userid: str) -> User:
-    pass
+def get_user(token: str) -> User:
+    """
+    Get the user object from the token.
+
+    :param token: JWT token, contains session_id(uuid) and admin(bool)
+    :type token: str
+    :return: User object if the token is valid, None otherwise.
+    :rtype: User
+    """
+    try:
+        payload = jwt.decode(token, os.getenv('SECRET'), algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+    session = Session.query.filter_by(token=payload['session_id']).first()
+
+    if session is None or session.expiry < datetime.now():
+        return None
+
+    return User.query.filter_by(id=session.user_id).first()
+
+
+# Test route for anything you like, DON'T COMMIT THIS.
+@auth.route('/auth/test', methods=['GET', 'POST'])
+def test():
+    if request.method == 'GET':
+        pass
+    elif request.method == 'POST':
+        pass

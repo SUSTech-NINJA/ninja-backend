@@ -4,7 +4,6 @@ from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.sqlite import JSON
 
-
 db = SQLAlchemy()
 
 
@@ -14,6 +13,7 @@ class GUID(TypeDecorator):
     CHAR(32), storing as stringified hex values.
     """
     impl = CHAR
+    cache_ok = True
 
     def load_dialect_impl(self, dialect):
         if dialect.name == 'postgresql':
@@ -47,7 +47,7 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
     settings = db.Column(JSON, nullable=True)
-    current = db.Column(db.Integer, nullable=False, default=0) # money
+    current = db.Column(db.Integer, nullable=False, default=0)  # money
     comments = db.Column(JSON, nullable=True)
     posts = db.Column(JSON, nullable=True)
     queries = db.Column(JSON, nullable=True)
@@ -79,10 +79,13 @@ class Session(db.Model):
 
 
 class Chat(db.Model):
-    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(GUID(), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String, nullable=False)
-    settings = db.Column(db.JSON, nullable=False)
+    settings = db.Column(db.JSON, nullable=True)
     history = db.Column(db.JSON, nullable=False)
 
     user = db.relationship('User', backref=db.backref('chat', lazy=True))
+
+    def __repr__(self):
+        return f'<Chat {self.id}>'

@@ -12,19 +12,19 @@ CREATE TABLE user (
     query JSON NOT NULL
 );
 
-CREATE TABLE bot (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    url TEXT NOT NULL,
-    usage_limit INTEGER NOT NULL,
-    price INTEGER NOT NULL
-);
-
 CREATE TABLE session (
     user_id INTEGER NOT NULL,
     token TEXT NOT NULL,
     expiry TIMESTAMP NOT NULL,
     FOREIGN KEY(user_id) REFERENCES user(id)
+);
+
+CREATE TABLE bot (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    base_model TEXT NOT NULL,
+    url TEXT NOT NULL,
+    usage_limit INTEGER NOT NULL,
+    price INTEGER NOT NULL
 );
 
 CREATE TABLE chat (
