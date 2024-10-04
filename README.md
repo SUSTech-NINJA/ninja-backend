@@ -17,13 +17,20 @@ Then, start a virtual environment and run the server
 
 ```bash
 poetry shell
+# you can choose alternatively to install on bare metal
+poetry install 
 flask run
 ```
 
 Visit by `http://localhost:5000/`
 
+> [!NOTE]
+> We recommend using `Apifox` to test the APIs.
+
 ## Frameworks
 - Flask
+    - SQLAlchemy
+- JWT
 
 ## License
 MIT License

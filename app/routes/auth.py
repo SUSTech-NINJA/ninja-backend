@@ -1,9 +1,10 @@
 import os
 import jwt
 from uuid import uuid4
-from app.models import db, User
+from app.models import db, User, Session
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
+from datetime import datetime
 
 # Same as the filename
 auth = Blueprint('auth', __name__)
@@ -14,26 +15,26 @@ def login():
     username = request.form['username']
     password = request.form['password']
 
-    code = 200
-    token = None
     user = User.query.filter_by(username=username).first()
 
     if user is None:
-        code = 401
-        token = 'User not found'
-    elif not check_password_hash(user.password, password):
-        code = 401
-        token = 'Incorrect password'
-    else:
-        uuid = str(uuid4())
-        payload = {
-            'admin': False,
-            'session_id': uuid
-        }
-        # TODO: Update Session Database
-        token = jwt.encode(payload, os.getenv('SECRET'), algorithm='HS256')
+        return jsonify({'token': 'User not found', 'userid': 'null'}), 401
 
-    return jsonify({'token': token, 'userid': user.id}), code
+    if not check_password_hash(user.password, password):
+        return jsonify({'token': 'Incorrect password', 'userid': 'null'}), 401
+
+    uuid = str(uuid4())
+    payload = {
+        'admin': False,
+        'session_id': uuid
+    }
+
+    new_session = Session(user_id=user.id, token=uuid, expiry=datetime(2025, 1, 1))
+    db.session.add(new_session)
+    db.session.commit()
+
+    token = jwt.encode(payload, os.getenv('SECRET'), algorithm='HS256')
+    return jsonify({'token': token, 'userid': user.id}), 200
 
 
 @auth.route('/register', methods=['POST'])
@@ -41,22 +42,42 @@ def register():
     username = request.form['username']
     password = request.form['password']
 
-    code = 200
     user = User.query.filter_by(username=username).first()
 
     if user is not None:
-        code = 401
-        return jsonify({'msg': 'User already exists'}), code
+        return jsonify({'msg': 'User already exists'}), 401
 
     new_user = User(username=username, password=generate_password_hash(password))
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'msg': 'Register successfully'}), code
+    return jsonify({'msg': 'Register successfully'}), 200
 
 
 def verify(token: str, userid: str) -> bool:
-    pass
+    """
+    Verify the token and check if the user id is the same.
+
+    :param token: JWT token, contains session_id(uuid) and admin(bool)
+    :param userid: User ID
+    :type token: str
+    :type userid: str
+    :return: True if the token is valid or its admin, False otherwise.
+    :rtype: bool
+    """
+    try:
+        payload = jwt.decode(token, os.getenv('SECRET'), algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return False
+    except jwt.InvalidTokenError:
+        return False
+
+    session = Session.query.filter_by(token=payload['session_id']).first()
+
+    if session is None or session.expiry < datetime.now():
+        return False
+
+    return str(session.user_id) == userid or payload['admin']
 
 
 def get_user_by_id(userid: str) -> User:

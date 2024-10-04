@@ -4,6 +4,7 @@ from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.sqlite import JSON
 
+
 db = SQLAlchemy()
 
 
@@ -46,7 +47,10 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
     settings = db.Column(JSON, nullable=True)
-    current = db.Column(db.Integer, nullable=False, default=0)
+    current = db.Column(db.Integer, nullable=False, default=0) # money
+    comments = db.Column(JSON, nullable=True)
+    posts = db.Column(JSON, nullable=True)
+    queries = db.Column(JSON, nullable=True)
     credit = db.Column(JSON, nullable=True)
 
     def __repr__(self):
@@ -55,7 +59,7 @@ class User(db.Model):
 
 class Bot(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String, nullable=False)  # unique?
+    name = db.Column(db.String, nullable=False, unique=True)
     url = db.Column(db.String, nullable=False)
     usage_limit = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Integer, nullable=False)
@@ -63,16 +67,22 @@ class Bot(db.Model):
 
 
 class Session(db.Model):
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
     token = db.Column(db.Text, nullable=False)
     expiry = db.Column(db.TIMESTAMP, nullable=False)
-    user = db.relationship('User', backref=db.backref('sessions', lazy=True))
+
+    user = db.relationship('User', backref=db.backref('session', lazy=True))
+
+    def __repr__(self):
+        return f'<Session {self.token}>'
 
 
 class Chat(db.Model):
     id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = db.Column(db.String, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String, nullable=False)
     settings = db.Column(db.JSON, nullable=False)
     history = db.Column(db.JSON, nullable=False)
-    user = db.relationship('User', backref=db.backref('chats', lazy=True))
+
+    user = db.relationship('User', backref=db.backref('chat', lazy=True))
