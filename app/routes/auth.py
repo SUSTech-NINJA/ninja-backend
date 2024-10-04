@@ -41,13 +41,20 @@ def login():
 def register():
     username = request.form['username']
     password = request.form['password']
+    email = request.form['email']
 
     user = User.query.filter_by(username=username).first()
 
     if user is not None:
         return jsonify({'msg': 'User already exists'}), 401
 
-    new_user = User(username=username, password=generate_password_hash(password))
+    new_user = User(
+        username=username,
+        password=generate_password_hash(password),
+        settings={
+            'email': email
+        }
+    )
     db.session.add(new_user)
     db.session.commit()
 

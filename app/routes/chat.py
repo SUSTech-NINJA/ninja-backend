@@ -1,10 +1,17 @@
 import os
-from flask import Blueprint, request, jsonify, Response
+import re
+from flask import Blueprint, request, jsonify, Response, current_app
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat
+from urllib.parse import urlparse
 
 chat = Blueprint('chat', __name__)
+headers = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'X-Accel-Buffering': 'no',
+}
 
 
 @chat.route('/chat/new', methods=['POST'])
@@ -31,54 +38,85 @@ def create_chat():
     return jsonify({'chatid': new_chat.id}), 200
 
 
-@chat.route('/chat/<chatid>', methods=['POST'])
+@chat.route('/chat/<chatid>', methods=['POST', 'DELETE'])
 def chat_stream(chatid):
-    token = request.headers.get('Authorization').split()[1]
-    user = get_user(token)
-    message = request.form.get('message')
-    single_round = request.form.get('single-round')
-    print(type(single_round))
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        message = request.form.get('message')
+        single_round = request.form.get('single-round').lower() == 'true'
 
-    if user is None:
-        return jsonify({'msg': 'Invalid Credential'}), 401
+        user = get_user(token)
+        if user is None:
+            return jsonify({'msg': 'Invalid Credential'}), 401
 
-    chat_info = Chat.query.filter_by(id=chatid).first()
+        if re.match(r'[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}', chatid) is None:
+            return jsonify({'msg': 'Invalid Chat ID'}), 404
 
-    if chat_info is None:
-        return jsonify({'msg': 'Chat not found'}), 404
+        chat_info = Chat.query.filter_by(id=chatid).first()
+        if chat_info is None:
+            return jsonify({'msg': 'Chat not found'}), 404
 
-    if chat_info.user_id != user.id:
-        return jsonify({'msg': 'Invalid Credential'}), 401
+        if chat_info.user_id != user.id:
+            return jsonify({'msg': 'Invalid Credential'}), 401
 
-    client = OpenAI(
-        api_key=os.getenv('AIPROXY_API_KEY'),
-        base_url="https://api.aiproxy.io/v1"
-    )
+        chat_info.history = chat_info.history + [{"role": "user", "content": message}]
+        db.session.commit()
 
-    chat_info.history = chat_info.history + [{"role": "user", "content": message}]
+        if single_round:
+            messages = [chat_info.history[0]] + [{"role": "user", "content": message}]
+        else:
+            messages = chat_info.history
 
-    response = client.chat.completions.create(
-        messages=chat_info.history,
-        model="gpt-3.5-turbo",
-        stream=True,
-        timeout=20
-    )
+        response = OpenAI(
+            api_key=os.getenv('AIPROXY_API_KEY'),
+            base_url="https://api.aiproxy.io/v1"
+        ).chat.completions.create(
+            messages=messages,
+            model=chat_info.settings['model'],
+            stream=True,
+            timeout=20
+        )
 
-    def generate():
-        for trunk in response:
-            if trunk.choices[0].finish_reason != "stop":
-                yield trunk.choices[0].delta.content
+        def generate():
+            for trunk in response:
+                if trunk.choices[0].finish_reason != "stop":
+                    yield trunk.choices[0].delta.content
+        return Response(generate(), mimetype="text/event-stream", headers=headers)
 
-    chat_info.history = chat_info.history + [{
-        "role": "assistant",
-        "content": ''.join([trunk.choices[0].delta.content for trunk in response if trunk.choices[0].finish_reason != "stop"])
-    }]
-    db.session.commit()
+    elif request.method == 'DELETE':
+        token = request.headers.get('Authorization').split()[1]
+        user = get_user(token)
 
-    headers = {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-    }
+        if user is None:
+            return jsonify({'msg': 'Invalid Credential'}), 401
 
-    return Response(generate(), mimetype="text/event-stream", headers=headers)
+        chat_info = Chat.query.filter_by(id=chatid).first()
+        if chat_info is None:
+            return jsonify({'msg': 'Chat not found'}), 404
+
+        if chat_info.user_id != user.id:
+            return jsonify({'msg': 'Invalid Credential'}), 401
+
+        db.session.delete(chat_info)
+        db.session.commit()
+
+        return jsonify({'msg': 'Chat deleted'}), 200
+
+
+@chat.route('/title/<chatid>', methods=['POST'])
+def title():
+    pass
+
+
+@chat.after_request
+def after_request(response):
+    path = urlparse(request.url).path
+    try:
+        chatid = re.search(r'/chat/([0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})', path).group(1)
+        chat_info = Chat.query.filter_by(id=chatid).first()
+        if chat_info is not None:
+            chat_info.history = chat_info.history + [{"role": "assistant", "content": response.data.decode()}]
+            db.session.commit()
+    except AttributeError:
+        pass
+    return response
