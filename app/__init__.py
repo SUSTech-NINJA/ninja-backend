@@ -16,6 +16,7 @@ from app.routes.user import user
 migrate = Migrate()
 dotenv.load_dotenv()
 
+
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     db_path = os.path.join(app.instance_path, 'database.sqlite')
@@ -44,7 +45,7 @@ def create_app():
     app.register_blueprint(shopping)
     app.register_blueprint(user)
 
-    cors = CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # public folders
     @app.route('/', methods=['GET'])

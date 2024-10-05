@@ -1,10 +1,10 @@
 import os
 import re
-from flask import Blueprint, request, jsonify, Response, current_app
+import time
+from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat
-from urllib.parse import urlparse
 
 chat = Blueprint('chat', __name__)
 headers = {
@@ -27,7 +27,9 @@ def create_chat():
             user_id=user.id,
             title="New Chat",
             history=[{"role": "system", "content": request.json['prompts']}],
-            settings={"model": request.json['model']}
+            settings={
+                "model": request.json['model']
+            }
         )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
@@ -38,9 +40,32 @@ def create_chat():
     return jsonify({'chatid': new_chat.id}), 200
 
 
-@chat.route('/chat/<chatid>', methods=['POST', 'DELETE'])
+@chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
 def chat_stream(chatid):
-    if request.method == 'POST':
+    if request.method == 'GET':
+        token = request.headers.get('Authorization').split()[1]
+        user = get_user(token)
+        if user is None:
+            return jsonify({'msg': 'Invalid Credential'}), 401
+
+        if re.match(r'[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}', chatid) is None:
+            return jsonify({'msg': 'Invalid Chat ID'}), 404
+
+        chat_info = Chat.query.filter_by(id=chatid).first()
+        if chat_info is None:
+            return jsonify({'msg': 'Chat not found'}), 404
+
+        if chat_info.user_id != user.id:
+            return jsonify({'msg': 'Invalid Credential'}), 401
+
+        return jsonify({
+            'base-model': chat_info.settings['model'],
+            'title': chat_info.title,
+            'messages': chat_info.history
+        }), 200
+    # Get Response From GPT
+    elif request.method == 'POST':
+        # TODO: Add file upload support
         token = request.headers.get('Authorization').split()[1]
         message = request.form.get('message')
         single_round = request.form.get('single-round').lower() == 'true'
@@ -78,11 +103,18 @@ def chat_stream(chatid):
         )
 
         def generate():
+            message = []
             for trunk in response:
                 if trunk.choices[0].finish_reason != "stop":
                     yield trunk.choices[0].delta.content
-        return Response(generate(), mimetype="text/event-stream", headers=headers)
+                    time.sleep(0.1)  # adjust this value to control the speed of the response
+                    message.append(trunk.choices[0].delta.content)
+                else:
+                    chat_info.history = chat_info.history + [{"role": "assistant", "content": ''.join(message)}]
+                    db.session.commit()
 
+        return Response(stream_with_context(generate()), mimetype="text/plain")
+    # Delete Chat
     elif request.method == 'DELETE':
         token = request.headers.get('Authorization').split()[1]
         user = get_user(token)
@@ -108,15 +140,13 @@ def title():
     pass
 
 
-@chat.after_request
-def after_request(response):
-    path = urlparse(request.url).path
-    try:
-        chatid = re.search(r'/chat/([0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12})', path).group(1)
-        chat_info = Chat.query.filter_by(id=chatid).first()
-        if chat_info is not None:
-            chat_info.history = chat_info.history + [{"role": "assistant", "content": response.data.decode()}]
-            db.session.commit()
-    except AttributeError:
-        pass
-    return response
+@chat.route('/chat', methods=['GET'])
+def get_chats():
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chats = Chat.query.filter_by(user_id=user.id).all()
+    return jsonify([{'chatid': chat.id, 'title': chat.title} for chat in chats]), 200
