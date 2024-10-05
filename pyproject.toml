@@ -2,7 +2,10 @@
 name = "ninja-backend"
 version = "0.1.0"
 description = "Backend server of NINJA project"
-authors = ["Ben Chen <chanben04gz@gmail.com>"]
+authors = [
+    "Ben Chen <chanben04gz@gmail.com>",
+    "Siyao Yu <12211655@mail.sustech.edu.cn>"
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]

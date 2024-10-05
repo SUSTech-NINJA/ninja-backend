@@ -6,6 +6,7 @@ This is the backend for the NINJA project.
 
 > [!NOTE]
 > If you don't have `poetry` installed, you can install it by running `pip install poetry`.
+> We recommend using [Apifox](https://apifox.com) to test the APIs.
 
 First, add a secret key to the `.env` file
 
@@ -22,15 +23,19 @@ poetry install
 flask run
 ```
 
-Visit by `http://localhost:5000/`
+Visit by [localhost:500/](http://localhost:5000/)
 
-> [!NOTE]
-> We recommend using `Apifox` to test the APIs.
 
 ## Frameworks
+
+- Poetry
 - Flask
-    - SQLAlchemy
+    - Flask-CORS
+    - SQLAlchemy (SQLite)
+    - dotenv
 - JWT
+- OpenAI
+
 
 ## License
 MIT License
