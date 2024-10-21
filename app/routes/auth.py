@@ -12,6 +12,16 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['POST'])
 def login():
+    """
+    Login the user and return a JWT token. Request data passed in the form-data.
+
+    :param username: Username
+    :param password: Password
+    :type username: str
+    :type password: str
+    :return: JWT token if the user is found and the password is correct, error message otherwise.
+    :rtype: str, JWT
+    """
     username = request.form['username']
     password = request.form['password']
 
@@ -109,12 +119,3 @@ def get_user(token: str) -> User:
         return None
 
     return User.query.filter_by(id=session.user_id).first()
-
-
-# Test route for anything you like, DON'T COMMIT THIS.
-@auth.route('/auth/test', methods=['GET', 'POST'])
-def test():
-    if request.method == 'GET':
-        pass
-    elif request.method == 'POST':
-        pass

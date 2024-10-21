@@ -63,6 +63,7 @@ def chat_stream(chatid):
             'title': chat_info.title,
             'messages': chat_info.history
         }), 200
+
     # Get Response From GPT
     elif request.method == 'POST':
         # TODO: Add file upload support
@@ -114,6 +115,7 @@ def chat_stream(chatid):
                     db.session.commit()
 
         return Response(stream_with_context(generate()), mimetype="text/plain")
+
     # Delete Chat
     elif request.method == 'DELETE':
         token = request.headers.get('Authorization').split()[1]
