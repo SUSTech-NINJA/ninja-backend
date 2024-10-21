@@ -16,6 +16,9 @@ headers = {
 
 @chat.route('/chat/new', methods=['POST'])
 def create_chat():
+    """
+    TBD
+    """
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
 
@@ -42,6 +45,9 @@ def create_chat():
 
 @chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
 def chat_stream(chatid):
+    """
+    TBD
+    """
     if request.method == 'GET':
         token = request.headers.get('Authorization').split()[1]
         user = get_user(token)
@@ -93,6 +99,8 @@ def chat_stream(chatid):
         else:
             messages = chat_info.history
 
+        # TODO: Get Bot information from settings
+
         response = OpenAI(
             api_key=os.getenv('AIPROXY_API_KEY'),
             base_url="https://api.aiproxy.io/v1"
@@ -137,13 +145,53 @@ def chat_stream(chatid):
         return jsonify({'msg': 'Chat deleted'}), 200
 
 
-@chat.route('/title/<chatid>', methods=['POST'])
+@chat.route('/title/<chatid>', methods=['GET'])
 def title():
-    pass
+    """
+    TBD
+    """
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info = Chat.query.filter_by(id=chatid).first()
+    if chat_info is None:
+        return jsonify({'msg': 'Chat not found'}), 404
+
+    if chat_info.user_id != user.id:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    response = OpenAI(
+        api_key=os.getenv('AIPROXY_API_KEY'),
+        base_url="https://api.aiproxy.io/v1"
+    ).chat.completions.create(
+        messages=chat_info.messages,
+        model='gpt-3.5-turbo',
+        stream=True,
+        timeout=20
+    )
+
+    def generate():
+        message = []
+        for trunk in response:
+            if trunk.choices[0].finish_reason != "stop":
+                yield trunk.choices[0].delta.content
+                time.sleep(0.1)  # adjust this value to control the speed of the response
+                message.append(trunk.choices[0].delta.content)
+            else:
+                chat_info.title = ''.join(message)
+                db.session.commit()
+
+    return Response(stream_with_context(generate()), mimetype="text/plain")
 
 
 @chat.route('/chat', methods=['GET'])
 def get_chats():
+    """
+    TBD
+    """
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
 
@@ -152,3 +200,35 @@ def get_chats():
 
     chats = Chat.query.filter_by(user_id=user.id).all()
     return jsonify([{'chatid': chat.id, 'title': chat.title} for chat in chats]), 200
+
+
+@chat.route('/chat/clear/<chatid>', methods=['POST'])
+def clear_chat(chatid):
+    """
+    TBD
+    """
+    pass
+
+
+@chat.route('/chat/edit/<chatid>', methods=['POST'])
+def edit_chat(chatid):
+    """
+    TBD
+    """
+    pass
+
+
+@chat.route('/chat/optimize', methods=['POST'])
+def optimize():
+    """
+    TBD
+    """
+    pass
+
+
+@chat.route('/chat/suggestions/<chatid>', methods=['GET'])
+def suggest(chatid):
+    """
+    TBD
+    """
+    pass

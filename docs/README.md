@@ -6,7 +6,7 @@ TBD
 
 # Database
 
-[](https://github.com/SUSTech-NINJA/ninja-backend/blob/d37980c9e5caa97fd89247dfeb019c42a135a50e/docs/schema.sql#L1-L37)
+https://github.com/SUSTech-NINJA/ninja-backend/blob/d37980c9e5caa97fd89247dfeb019c42a135a50e/docs/schema.sql#L1-L37
 
 根据需求，我们创建了四张表用于存储用户信息、机器人信息和会话历史记录。
 
