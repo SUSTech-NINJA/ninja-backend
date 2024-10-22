@@ -1,6 +1,6 @@
 import os
 import re
-import time
+import json
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
@@ -28,7 +28,7 @@ def create_chat():
     try:
         new_chat = Chat(
             user_id=user.id,
-            title="New Chat",
+            title="New Conversation",
             history=[{"role": "system", "content": request.json['prompts']}],
             settings={
                 "model": request.json['model']
@@ -99,7 +99,7 @@ def chat_stream(chatid):
         else:
             messages = chat_info.history
 
-        # TODO: Get Bot information from settings
+        # TODO: Get bot information from database, i.e., url
 
         response = OpenAI(
             api_key=os.getenv('AIPROXY_API_KEY'),
@@ -116,7 +116,6 @@ def chat_stream(chatid):
             for trunk in response:
                 if trunk.choices[0].finish_reason != "stop":
                     yield trunk.choices[0].delta.content
-                    time.sleep(0.1)  # adjust this value to control the speed of the response
                     message.append(trunk.choices[0].delta.content)
                 else:
                     chat_info.history = chat_info.history + [{"role": "assistant", "content": ''.join(message)}]
@@ -146,7 +145,7 @@ def chat_stream(chatid):
 
 
 @chat.route('/title/<chatid>', methods=['GET'])
-def title():
+def title(chatid):
     """
     TBD
     """
@@ -163,11 +162,15 @@ def title():
     if chat_info.user_id != user.id:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
+    with open('app/assets/prompts.json', 'r') as f:
+        prompt = json.load(f)[0][1]
+    message = [{"role": "system", "content": prompt}] + chat_info.history[1:]
+
     response = OpenAI(
         api_key=os.getenv('AIPROXY_API_KEY'),
         base_url="https://api.aiproxy.io/v1"
     ).chat.completions.create(
-        messages=chat_info.messages,
+        messages=message,
         model='gpt-3.5-turbo',
         stream=True,
         timeout=20
@@ -178,7 +181,6 @@ def title():
         for trunk in response:
             if trunk.choices[0].finish_reason != "stop":
                 yield trunk.choices[0].delta.content
-                time.sleep(0.1)  # adjust this value to control the speed of the response
                 message.append(trunk.choices[0].delta.content)
             else:
                 chat_info.title = ''.join(message)
@@ -207,7 +209,24 @@ def clear_chat(chatid):
     """
     TBD
     """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info = Chat.query.filter_by(id=chatid).first()
+
+    if chat_info is None:
+        return jsonify({'msg': 'Chat not found'}), 404
+
+    if chat_info.user_id != user.id:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info.history = chat_info.history[:1]
+    db.session.commit()
+
+    return jsonify({'msg': 'Success'}), 200
 
 
 @chat.route('/chat/edit/<chatid>', methods=['POST'])
@@ -215,7 +234,24 @@ def edit_chat(chatid):
     """
     TBD
     """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info = Chat.query.filter_by(id=chatid).first()
+
+    if chat_info is None:
+        return jsonify({'msg': 'Chat not found'}), 404
+
+    if chat_info.user_id != user.id:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info.title = request.form.get('title')
+    db.session.commit()
+
+    return jsonify({'msg': 'Success'}), 200
 
 
 @chat.route('/chat/optimize', methods=['POST'])
@@ -223,7 +259,32 @@ def optimize():
     """
     TBD
     """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    with open('app/assets/prompts.json', 'r') as f:
+        message = [
+            {"role": "system", "content": json.load(f)[1][1]},
+            {"role": "user", "content": request.form.get('text')}
+        ]
+
+    print(message)
+
+    response = OpenAI(
+        api_key=os.getenv('AIPROXY_API_KEY'),
+        base_url="https://api.aiproxy.io/v1"
+    ).chat.completions.create(
+        messages=message,
+        model='gpt-3.5-turbo',
+        timeout=20
+    )
+
+    print(response)
+
+    return jsonify({"string": response.choices[0].message.content}), 200
 
 
 @chat.route('/chat/suggestions/<chatid>', methods=['GET'])

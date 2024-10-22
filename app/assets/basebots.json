@@ -6,7 +6,6 @@
         "usage_limit": 1000,
         "price": 2
     },
-
     {
         "id": 2,
         "model": "gpt-3.5-turbo",
@@ -14,7 +13,6 @@
         "usage_limit": 1000,
         "price": 1
     },
-
     {
 
     }

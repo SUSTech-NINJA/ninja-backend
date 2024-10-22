@@ -35,7 +35,7 @@ def login():
 
     uuid = str(uuid4())
     payload = {
-        'admin': False,
+        'admin': username == 'admin',
         'session_id': uuid
     }
 
