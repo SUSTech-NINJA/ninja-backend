@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy.types import TypeDecorator, CHAR, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.sqlite import JSON
 
@@ -43,15 +44,56 @@ class GUID(TypeDecorator):
 
 
 class User(db.Model):
+    """
+    rate: [1, 2, 3, 4, 5]
+    posts: [
+        {
+            "sender": "uuid", 
+            "timestamp": "datetime",
+            "content": "string"
+        },
+    ]
+    queries1: [
+        {
+            "sender": "uuid", 
+            "content": [
+                {
+                    "sender": "uuid1",
+                    "content": "string"
+                },
+                {
+                    "sender": "uuid2",
+                    "content": "string"
+                },
+            ]
+        }
+    ]
+    queries2: [
+        {
+            "receiver": "uuid", 
+            "content": [
+                {
+                    "sender": "uuid1",
+                    "content": "string"
+                },
+                {
+                    "sender": "uuid2",
+                    "content": "string"
+                },
+            ]
+        }
+    ]
+    """
     id             = db.Column(GUID(), primary_key=True, default=lambda: str(uuid.uuid4()))
     username       = db.Column(db.String, nullable=False, unique=True)
     password       = db.Column(db.String, nullable=False)
     admin          = db.Column(db.Boolean, nullable=False, default=False)
     settings       = db.Column(JSON, nullable=True)
     current        = db.Column(db.Integer, nullable=False, default=0)  # money
-    comments       = db.Column(JSON, nullable=True)
+    rate           = db.Column(JSON, nullable=True)
     posts          = db.Column(JSON, nullable=True)
-    queries        = db.Column(JSON, nullable=True)
+    queries1       = db.Column(JSON, nullable=True)
+    queries2       = db.Column(JSON, nullable=True)
     credit         = db.Column(JSON, nullable=True)
 
     def __repr__(self):
@@ -66,7 +108,7 @@ class Bot(db.Model):
     base_model     = db.Column(db.String, nullable=False)
     quota          = db.Column(db.Integer, nullable=True)
     price          = db.Column(db.Integer, nullable=False)
-    prompts        = db.Column(JSON, nullable=False)
+    prompts        = db.Column(JSON, nullable=True)
     icon           = db.Column(db.String, nullable=False)
     knowledge_base = db.Column(db.String, nullable=True)
 
@@ -97,3 +139,17 @@ class Chat(db.Model):
 
     def __repr__(self):
         return f'<Chat {self.id}>'
+
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
+    user_name = db.Column(db.String, nullable=False)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'), nullable=False)
+    content = db.Column(db.String, nullable=True)
+    score = db.Column(db.Integer, nullable=False)
+    time = db.Column(db.DateTime, default=datetime.now())
+
+    def __repr__(self):
+        return f'<content {self.content}>'
+

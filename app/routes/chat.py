@@ -100,7 +100,6 @@ def chat_stream(chatid):
             messages = chat_info.history
 
         # TODO: Get bot information from database, i.e., url
-
         response = OpenAI(
             api_key=os.getenv('AIPROXY_API_KEY'),
             base_url="https://api.aiproxy.io/v1"
@@ -313,6 +312,38 @@ def suggest(chatid):
     ).chat.completions.create(
         messages=message,
         model='gpt-3.5-turbo',
+        timeout=20
+    )
+
+    return jsonify({"string": response.choices[0].message.content}), 200
+
+
+@chat.route('/test', methods=['GET'])
+def test():
+    """
+    TBD
+    """
+    # base64_image = encode_image('app/assets/1.jpeg')
+
+    message = [
+        {"role": "system", "content": "Tell me what you see"},
+        {"role": "user", "content": [
+            {"type":"text", "text":"What's in this image?"},
+            {
+               "type":"image_url",
+               "image_url":{
+                  "url":f"data:image/jpeg;base64,{base64_image}"
+               }
+            }
+        ]}
+    ]
+
+    response = OpenAI(
+        api_key=os.getenv('AIPROXY_API_KEY'),
+        base_url="https://api.aiproxy.io/v1"
+    ).chat.completions.create(
+        messages=message,
+        model='gpt-4-turbo',
         timeout=20
     )
 
