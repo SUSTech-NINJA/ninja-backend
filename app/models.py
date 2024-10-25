@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
@@ -97,3 +98,17 @@ class Chat(db.Model):
 
     def __repr__(self):
         return f'<Chat {self.id}>'
+
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
+    user_name = db.Column(db.String, nullable=False)
+    bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'), nullable=False)
+    content = db.Column(db.String, nullable=True)
+    score = db.Column(db.Integer, nullable=False)
+    time = db.Column(db.DateTime, default=datetime.now())
+
+    def __repr__(self):
+        return f'<content {self.content}>'
+
