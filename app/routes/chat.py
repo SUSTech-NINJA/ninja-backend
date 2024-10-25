@@ -281,7 +281,7 @@ def optimize():
         timeout=20
     )
 
-    return jsonify({"string": response.choices[0].message.content}), 200
+    return response.choices[0].message.content, 200
 
 
 @chat.route('/chat/suggestions/<chatid>', methods=['GET'])
@@ -315,7 +315,7 @@ def suggest(chatid):
         timeout=20
     )
 
-    return jsonify({"string": response.choices[0].message.content}), 200
+    return response.choices[0].message.content, 200
 
 
 @chat.route('/test', methods=['GET'])

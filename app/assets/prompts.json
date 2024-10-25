@@ -9,6 +9,6 @@
     ],
     [
       "Suggest questions",
-      "Suppose you are a recommend system, based on the conversations given below, please suggest a possible questions that the user would probably is going to ask next time. A example would be: \"User: help me summarize the content in the following math notes. Assistent: Sure, .... \" Then you will give a suggestion like: How to understand the determinant? Ignore the example I gave you and please give suggestion based on the following conversation below and directly give the suggestion question as the example. \n"
+      "Suppose you are a recommend system, based on the conversations given below, please suggest a possible questions that the user would probably is going to ask next time. A example suggestion would be: \"How to understand the determinant?\" Ignore the example I gave you and please give suggestion based on the following conversation below and directly give the suggestion question as the example. Also, make sure you only output the question, not any other thing. The result should directly be useful in automation. Give me only one suggestion.\n"
     ]
 ]
