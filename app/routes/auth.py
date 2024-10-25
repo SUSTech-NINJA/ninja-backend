@@ -55,6 +55,9 @@ def login():
 
 @auth.route('/register', methods=['POST'])
 def register():
+    """
+
+    """
     username = request.form['username']
     password = request.form['password']
     email = request.form['email']
@@ -72,6 +75,7 @@ def register():
             'email': email
         }
     )
+
     db.session.add(new_user)
     db.session.commit()
 
