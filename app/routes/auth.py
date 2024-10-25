@@ -40,7 +40,12 @@ def login():
         'session_id': uuid
     }
 
-    new_session = Session(user_id=user.id, token=uuid, expiry=datetime(2025, 1, 1))
+    new_session = Session(
+        user_id=user.id,
+        token=uuid,
+        expiry=datetime(2025, 1, 1)
+    )
+
     db.session.add(new_session)
     db.session.commit()
 
@@ -62,6 +67,7 @@ def register():
     new_user = User(
         username=username,
         password=generate_password_hash(password),
+        admin=(username == 'admin'),
         settings={
             'email': email
         }
