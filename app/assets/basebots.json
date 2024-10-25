@@ -1,19 +1,49 @@
 [
     {
-        "id": 1,
-        "model": "gpt-4o-preview",
+        "id": 0,
+        "model": "o1-preview",
         "url": "https://api.aiproxy.io/v1",
         "usage_limit": 1000,
-        "price": 2
+        "price": 150
     },
+
+    {
+        "id": 1,
+        "model": "o1-mini",
+        "url": "https://api.aiproxy.io/v1",
+        "usage_limit": 1000,
+        "price": 30
+    },
+
     {
         "id": 2,
+        "model": "gpt-4o-turbo",
+        "url": "https://api.aiproxy.io/v1",
+        "usage_limit": 1000,
+        "price": 100
+    },
+
+    {
+        "id": 3,
         "model": "gpt-3.5-turbo",
         "url": "https://api.aiproxy.io/v1",
         "usage_limit": 1000,
         "price": 1
     },
-    {
 
+    {
+        "id": 4,
+        "model": "",
+        "url": "https://api.aiproxy.io/v1",
+        "usage_limit": ,
+        "price": 
+    },
+
+    {
+        "id": 5,
+        "model": "",
+        "url": "https://api.aiproxy.io/v1",
+        "usage_limit": ,
+        "price": 
     }
 ]

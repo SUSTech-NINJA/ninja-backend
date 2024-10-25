@@ -34,8 +34,9 @@ def login():
         return jsonify({'token': 'Incorrect password', 'userid': 'null'}), 401
 
     uuid = str(uuid4())
+
     payload = {
-        'admin': username == 'admin',
+        'admin': user.admin,
         'session_id': uuid
     }
 

@@ -282,8 +282,6 @@ def optimize():
         timeout=20
     )
 
-    print(response)
-
     return jsonify({"string": response.choices[0].message.content}), 200
 
 
@@ -292,4 +290,30 @@ def suggest(chatid):
     """
     TBD
     """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    chat_info = Chat.query.filter_by(id=chatid).first()
+    if chat_info is None:
+        return jsonify({'msg': 'Chat not found'}), 404
+
+    if chat_info.user_id != user.id:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    with open('app/assets/prompts.json', 'r') as f:
+        prompt = json.load(f)[2][1]
+    message = [{"role": "system", "content": prompt}] + chat_info.history[1:]
+
+    response = OpenAI(
+        api_key=os.getenv('AIPROXY_API_KEY'),
+        base_url="https://api.aiproxy.io/v1"
+    ).chat.completions.create(
+        messages=message,
+        model='gpt-3.5-turbo',
+        timeout=20
+    )
+
+    return jsonify({"string": response.choices[0].message.content}), 200

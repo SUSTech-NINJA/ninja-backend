@@ -316,11 +316,3 @@ def get_history(uuid):
     TBD
     """
     pass
-
-
-@user.route('/evaluate_user/<uuid>', methods=['POST'])
-def evaluate_user(uuid):
-    """
-    TBD
-    """
-    pass
