@@ -74,8 +74,8 @@ def chat_stream(chatid):
     elif request.method == 'POST':
         # TODO: Add file upload support
         token = request.headers.get('Authorization').split()[1]
-        message = request.form.get('message')
-        single_round = request.form.get('single-round').lower() == 'true'
+        message = request.get_json().get('message')
+        single_round = request.get_json().get('single-round')
 
         user = get_user(token)
         if user is None:
