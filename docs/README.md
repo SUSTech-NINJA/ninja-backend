@@ -59,3 +59,14 @@ Chat 表存储用户的会话历史和对应的设置信息。
 ### Chat Settings
 
 TBD
+
+## Comment
+Comment 表储存用户对于机器人的评论和打分。
+
+- `id`:`INTEGER`
+-  `user_id`:`String`,评论的用户id，引用user表的uuid
+-  `user_name`:`String`
+-  `bot_id`:`INTEGER`
+-  `content`:`String`,用户的评论内容，可为空。
+-  `score`:`INTEGER`,用户打的分数，不可为空。
+-  `time`:`DATETIME`,用户的评论时间。
