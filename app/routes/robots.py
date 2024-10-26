@@ -1,3 +1,5 @@
+import time
+
 from flask import request, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from app.models import db, Bot, User, Comment
@@ -165,3 +167,33 @@ def update_robot():
     bot = Bot.query.filter_by(id=robots).first()
     if bot.user_id != user.id:
         return jsonify({'msg': 'Invalid'}), 401
+
+
+@robots.route('/robot/post/{robotid}', methods=['POST'])
+def post_comment(robotid):
+
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+    has_comment = Comment.query.filter_by(user_id=user.id).all()
+
+    if has_comment is None:
+        try:
+            new_comment = Comment(user_id=user.id,
+                                  user_name=user.username,
+                                  bot_id=robotid,
+                                  content=request.form['content'],
+                                  score=request.form['rate'],
+                                  )
+            db.session.add(new_comment)
+            db.session.commit()
+            return jsonify({'content': new_comment.content,
+                            'score': new_comment.score,
+                            'user_name': user.username,
+                            'time': time.time()}),200
+        except KeyError:
+            return jsonify({'msg': 'Missing required fields'}), 400
+    else:
+        return jsonify({'msg': 'Comment already exists'}), 403
+
