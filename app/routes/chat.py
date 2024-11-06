@@ -1,19 +1,24 @@
 import os
+import io
 import re
 import json
+import base64
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat
+from PIL import Image
+
 
 chat = Blueprint('chat', __name__)
+
 headers = {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'X-Accel-Buffering': 'no',
 }
 
-
+# TODO: Fold Authorization to before_request
 @chat.route('/chat/new', methods=['POST'])
 def create_chat():
     """
@@ -41,6 +46,10 @@ def create_chat():
     db.session.commit()
 
     return jsonify({'chatid': new_chat.id}), 200
+
+
+def get_image_type(data):
+    return Image.open(io.BytesIO(data)).format
 
 
 @chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
@@ -72,10 +81,7 @@ def chat_stream(chatid):
 
     # Get Response From GPT
     elif request.method == 'POST':
-        # TODO: Add file upload support
         token = request.headers.get('Authorization').split()[1]
-        message = request.get_json().get('message')
-        single_round = request.get_json().get('single-round')
 
         user = get_user(token)
         if user is None:
@@ -91,20 +97,51 @@ def chat_stream(chatid):
         if chat_info.user_id != user.id:
             return jsonify({'msg': 'Invalid Credential'}), 401
 
-        chat_info.history = chat_info.history + [{"role": "user", "content": message}]
-        db.session.commit()
+        message = request.form.get('message')
+        files = request.form.get('files')
+        mimetypes = request.form.get('mimetypes')
+        single_round = request.form.get('single-round')
 
-        if single_round:
-            messages = [chat_info.history[0]] + [{"role": "user", "content": message}]
+        files = json.loads(files)
+        mimetypes = json.loads(mimetypes)
+        assert len(files) == len(mimetypes)
+
+        input_files = []
+        for i in range(len(files)):
+            if mimetypes[i].startswith('image'):
+                image_type = get_image_type(base64.b64decode(files[i]))
+                input_files.append({ 
+                    "type": "image_url",
+                    "image_url": { "url": f"data:image/{image_type.lower()};base64,{files[i]}" }
+                })
+            elif mimetypes[i].startswith('audio'):
+                input_files.append({ 
+                    "type": "input_audio",
+                    "input_audio": { "data": files[i], "format": "ogg"}
+                })
+            else:
+                input_files.append({ 
+                    "type": "text",
+                    "text": base64.b64encode(files[i])
+                })
+
+        if len(input_files) == 0:
+            user_message = [{"role": "user", "content": message}]
         else:
-            messages = chat_info.history
+            user_message = [{
+                "role": "user",
+                "content": [{"type": "text", "text": message}] + input_files
+            }]
+
+        chat_info.history = chat_info.history + user_message
+        db.session.commit()
 
         # TODO: Get bot information from database, i.e., url
         response = OpenAI(
             api_key=os.getenv('AIPROXY_API_KEY'),
             base_url="https://api.aiproxy.io/v1"
         ).chat.completions.create(
-            messages=messages,
+            messages=(chat_info.history[:1] + user_message) if single_round else chat_info.history,
             model=chat_info.settings['model'],
             stream=True,
             timeout=20
@@ -117,7 +154,10 @@ def chat_stream(chatid):
                     yield trunk.choices[0].delta.content
                     message.append(trunk.choices[0].delta.content)
                 else:
-                    chat_info.history = chat_info.history + [{"role": "assistant", "content": ''.join(message)}]
+                    chat_info.history = chat_info.history + [{
+                        "role": "assistant",
+                        "content": ''.join(message)
+                    }]
                     db.session.commit()
 
         return Response(stream_with_context(generate()), mimetype="text/plain")
@@ -163,6 +203,7 @@ def title(chatid):
 
     with open('app/assets/prompts.json', 'r') as f:
         prompt = json.load(f)[0][1]
+
     message = [{"role": "system", "content": prompt}] + chat_info.history[1:]
 
     response = OpenAI(
@@ -316,35 +357,3 @@ def suggest(chatid):
     )
 
     return response.choices[0].message.content, 200
-
-
-@chat.route('/test', methods=['GET'])
-def test():
-    """
-    TBD
-    """
-    # base64_image = encode_image('app/assets/1.jpeg')
-
-    message = [
-        {"role": "system", "content": "Tell me what you see"},
-        {"role": "user", "content": [
-            {"type":"text", "text":"What's in this image?"},
-            {
-               "type":"image_url",
-               "image_url":{
-                  "url":f"data:image/jpeg;base64,{base64_image}"
-               }
-            }
-        ]}
-    ]
-
-    response = OpenAI(
-        api_key=os.getenv('AIPROXY_API_KEY'),
-        base_url="https://api.aiproxy.io/v1"
-    ).chat.completions.create(
-        messages=message,
-        model='gpt-4-turbo',
-        timeout=20
-    )
-
-    return jsonify({"string": response.choices[0].message.content}), 200

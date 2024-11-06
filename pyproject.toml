@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Backend server of NINJA project"
 authors = [
     "Ben Chen <chanben04gz@gmail.com>",
-    "Siyao Yu <12211655@mail.sustech.edu.cn>"
+    "Siyao Yu <12211655@mail.sustech.edu.cn>",
+    "Mingzhi Chen <chenmingzhi098@gmail.com>",
+    "Tianrun Qiu <roderickqiu@gmail.com>"
 ]
 readme = "README.md"
 
@@ -19,6 +21,7 @@ flask-cors = "^5.0.0"
 pyjwt = "^2.9.0"
 openai = "^1.51.0"
 gunicorn = "^23.0.0"
+pillow = "^11.0.0"
 
 
 [build-system]
