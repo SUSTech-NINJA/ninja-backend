@@ -206,10 +206,7 @@ def title(chatid):
                 'role': message['role'],
                 'content': message['content'][0]['text']
             })
-
     message = [{"role": "system", "content": prompt}] + history
-
-    print(message)
 
     response = OpenAI(
         api_key=os.getenv('AIPROXY_API_KEY'),
@@ -350,7 +347,17 @@ def suggest(chatid):
 
     with open('app/assets/prompts.json', 'r') as f:
         prompt = json.load(f)[2][1]
-    message = [{"role": "system", "content": prompt}] + chat_info.history[1:]
+
+    history = []
+    for message in chat_info.history[1:]:
+        if isinstance(message['content'], str):
+            history.append(message)
+        else:
+            history.append({
+                'role': message['role'],
+                'content': message['content'][0]['text']
+            })
+    message = [{"role": "system", "content": prompt}] + history
 
     response = OpenAI(
         api_key=os.getenv('AIPROXY_API_KEY'),
