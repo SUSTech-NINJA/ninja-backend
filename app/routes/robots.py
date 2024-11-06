@@ -77,7 +77,7 @@ def create_robot():
                     'system_prompt': new_bot.prompts,
                     'creator': new_bot.user_id,
                     'icon': new_bot.icon,
-                    'knowledge_bale': new_bot.knowledge_base,
+                    'knowledge_base': new_bot.knowledge_base,
                     'price': new_bot.price,
                     'quota': new_bot.quota,
                     'population': None,
