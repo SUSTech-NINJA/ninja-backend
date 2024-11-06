@@ -99,7 +99,6 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-
 class Bot(db.Model):
     id             = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id        = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
@@ -111,6 +110,7 @@ class Bot(db.Model):
     prompts        = db.Column(JSON, nullable=True)
     icon           = db.Column(db.String, nullable=False)
     knowledge_base = db.Column(db.String, nullable=True)
+    is_default     = db.Column(db.Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f'<Bot {self.base_model}>'

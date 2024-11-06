@@ -24,7 +24,8 @@ CREATE TABLE bot (
     base_model TEXT NOT NULL,
     url TEXT NOT NULL,
     usage_limit INTEGER NOT NULL,
-    price INTEGER NOT NULL
+    price INTEGER NOT NULL,
+    is_default BOOLEAN NOT NULL
 );
 
 CREATE TABLE chat (

@@ -45,6 +45,7 @@ Bot 表存储机器人的信息, 包括机器人的名字、模型、访问API�
 - `url` TEXT,
 - `usage_limit` INTEGER,
 - `price` INTEGER
+- `is_default` BOOLEAN
 
 ## Chat
 
