@@ -1,5 +1,4 @@
 import os
-import io
 import re
 import json
 import base64
@@ -7,7 +6,6 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat
-from PIL import Image
 
 
 chat = Blueprint('chat', __name__)
@@ -46,10 +44,6 @@ def create_chat():
     db.session.commit()
 
     return jsonify({'chatid': new_chat.id}), 200
-
-
-def get_image_type(data):
-    return Image.open(io.BytesIO(data)).format
 
 
 @chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
@@ -97,10 +91,10 @@ def chat_stream(chatid):
         if chat_info.user_id != user.id:
             return jsonify({'msg': 'Invalid Credential'}), 401
 
-        message = request.form.get('message')
-        files = request.form.get('files')
-        mimetypes = request.form.get('mimetypes')
-        single_round = request.form.get('single-round')
+        message = request.get_json().get('message')
+        files = request.get_json().get('files')
+        mimetypes = request.get_json().get('mimetypes')
+        single_round = request.get_json().get('single-round')
 
         files = json.loads(files)
         mimetypes = json.loads(mimetypes)
@@ -109,10 +103,9 @@ def chat_stream(chatid):
         input_files = []
         for i in range(len(files)):
             if mimetypes[i].startswith('image'):
-                image_type = get_image_type(base64.b64decode(files[i]))
                 input_files.append({ 
                     "type": "image_url",
-                    "image_url": { "url": f"data:image/{image_type.lower()};base64,{files[i]}" }
+                    "image_url": { "url": files[i] }
                 })
             elif mimetypes[i].startswith('audio'):
                 input_files.append({ 
