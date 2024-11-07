@@ -111,6 +111,7 @@ class Bot(db.Model):
     icon           = db.Column(db.String, nullable=False)
     knowledge_base = db.Column(db.String, nullable=True)
     is_default     = db.Column(db.Boolean, nullable=False, default=False)
+    rate           = db.Column(JSON, nullable=True)
 
     def __repr__(self):
         return f'<Bot {self.base_model}>'
