@@ -382,26 +382,33 @@ def get_average_rate(bot_id):
     return average_score, total
 
 def calc_timegap(time1, time2):
-    time1 = time.strptime(time1, "%Y-%m-%d %H:%M:%S")
-    time2 = time.strptime(time2, "%Y-%m-%d %H:%M:%S")
-    time1 = datetime(time1[0], time1[1], time1[2])
-    time2 = datetime(time2[0], time2[1], time2[2])
+    if isinstance(time1, str):
+        time1 = time.strptime(time1, "%Y-%m-%d %H:%M:%S")
+    if isinstance(time2, str):
+        time2 = time.strptime(time2, "%Y-%m-%d %H:%M:%S")
+    try:
+        time1 = datetime(time1[0], time1[1], time1[2])
+    except:
+        print(time1)
+    try:
+        time2 = datetime(time2[0], time2[1], time2[2])
+    except:
+        print(time2)
+    print(time1, time2,(time1-time2).days)
     return (time1 - time2).days
 
 
-@robots.route('/robot/trendings', methods=['GET'])
+@robots.route('/robot/trendings/<duration>/<type>', methods=['GET'])
 # body parameter:
-# type: best-rated most-recent most-viewed
+# type: "best-rated most-recent most-viewed"
 # duration: recent month all
 # recent means within 3 days
-def get_robot_trend():
+def get_robot_trend(duration, type):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
     bots = Bot.query.all()
-    duration = request.form['duration']
-    type = request.form['type']
     bots_score = [{'bot_id': bot.id, 'rate': 0, 'total': 0, 'time': bot.time} for bot in bots]
     timegap = 0 #
     if duration == 'recent':
@@ -434,24 +441,25 @@ def get_robot_trend():
     response = [] 
     for bots in sorted_bots:
         bot = Bot.query.filter_by(id=bots['bot_id']).first()
+        user = User.query.filter_by(id=bot.user_id).first()
         if len(response) >= 10:
             break
-        response.append(jsonify({
+        response.append({
             'robotid': bot.id,
             'robot_name': bot.name,
             'base_model': bot.base_model,
             'system_prompt': bot.prompts,
             'knowledge_base': bot.knowledge_base,
-            'creator': bot.user_id,
+            'creator': user.username,
             'price': bot.price,
             'quota': bot.quota,
             'icon': bot.icon,
             'rate': bots['rate'],
             'popularity': bots['total'],
-            'time': bot.time
-        }))
+            'time': bot.time.strftime("%Y-%m-%d %H:%M:%S")
+        })
         
-    return response, 200
+    return jsonify(response), 200
     
             
         
