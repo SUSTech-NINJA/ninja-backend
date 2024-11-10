@@ -4,7 +4,7 @@ import xlwt
 import base64
 import io
 from datetime import datetime
-
+import os
 from app.models import Bot, Comment, db, User, Bill
 from app.routes.auth import get_user
 
@@ -28,6 +28,7 @@ def default_robot_list():
                 'id': bot.base_model,
                 'model_tokens_limitation': bot.quota,
                 'price': bot.price,
+                'icon': bot.icon
             })
         return jsonify(bots_list), 200
     except KeyError:
@@ -39,6 +40,8 @@ def create_default_robot(): # create a new bot
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
+
+    print(request.form['base_model_name'],request.form['base_model_id'],request.form['price'],request.form['icon'],request.form['model_tokens_limitation'])
 
     bot = Bot.query.filter_by(name=request.form['base_model_name']).first()
     if bot is not None:
@@ -75,17 +78,18 @@ def create_default_robot(): # create a new bot
 def update_robot(base_model_id):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
+    print(token,user,base_model_id,request.headers.get('Authorization'))
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
     bot = Bot.query.filter_by(base_model=base_model_id).first()
     if bot is None:
         return jsonify({'msg': 'Cannot find this Base Model'}), 401
 
-    if bot.user_id != user.id:
+    if bot.user_id != user.id and not user.admin:
         return jsonify({'msg': 'Invalid Operation'}), 401
 
     try:
-        bot.name = request.form['name']
+        bot.name = request.form['base_model_name']
         bot.price = request.form['price']
         bot.icon = request.form.get('icon')
         bot.quota = request.form['model_tokens_limitation']
@@ -115,7 +119,7 @@ def delete_robot(base_model_id):
     if bot is None:
         return jsonify({'msg': 'Cannot find this Base Model'}), 401
 
-    if bot.user_id != user.id:
+    if bot.user_id != user.id and not user.admin:
         return jsonify({'msg': 'Invalid Operation'}), 401
 
     try:
@@ -126,7 +130,7 @@ def delete_robot(base_model_id):
     db.session.commit()
     return jsonify({'msg': 'Success'})
  
-@admin.route('/admin/export/comment/<int:robot_id>', methods=['GET'])
+@admin.route('/admin/export/comment/<robot_id>', methods=['GET'])
 def export_comment(robot_id):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
@@ -151,11 +155,13 @@ def export_comment(robot_id):
         sheet.write(row, 5, comment.score)
         sheet.write(row, 6, comment.time.strftime('%Y-%m-%d %H:%M:%S'))
 
-    output = io.BytesIO()
-    workbook.save(output)
-    output.seek(0)
-    excel_data_string = base64.b64encode(output.getvalue()).decode('utf-8')
-    return excel_data_string, 200
+    # save
+    time_str = str(datetime.now())
+    workbook.save('comments-'+ time_str +'.xls')
+    with open('comments-'+ time_str +'.xls', 'rb') as f:
+        data = f.read()
+        os.remove('comments-'+ time_str +'.xls')
+    return data, 200
 
 @admin.route('/admin/export/summary', methods=['GET'])
 def export_summary():
@@ -171,10 +177,10 @@ def export_summary():
         user_sheet.write(0, col, header)
     
     for row, user in enumerate(users, start=1):
-        user_sheet.write(row, 0, user.id)
+        user_sheet.write(row, 0, str(user.id))
         user_sheet.write(row, 1, user.username)
         user_sheet.write(row, 2, user.admin)
-        user_sheet.write(row, 3, user.settings)
+        user_sheet.write(row, 3, str(user.settings))
         user_sheet.write(row, 4, user.current)
         user_sheet.write(row, 5, user.rate)
         user_sheet.write(row, 6, user.credit)
@@ -190,7 +196,7 @@ def export_summary():
     
     for row, bot in enumerate(bots, start=1):
         bot_sheet.write(row, 0, bot.id)
-        bot_sheet.write(row, 1, bot.user_id)
+        bot_sheet.write(row, 1, str(bot.user_id))
         bot_sheet.write(row, 2, bot.name)
         bot_sheet.write(row, 3, bot.url)
         bot_sheet.write(row, 4, bot.base_model)
@@ -220,13 +226,12 @@ def export_summary():
     
     bill_sheet.write(len(bills) + 1, 0, f'Total Margin：{total_margin}')
 
-    output = io.BytesIO()
-    workbook.save(output)
-    output.seek(0)
-
-    excel_data_string = base64.b64encode(output.getvalue()).decode('utf-8')
-
-    return excel_data_string, 200
+    time_str = str(datetime.now())
+    workbook.save('summary-'+ time_str +'.xls')
+    with open('summary-'+ time_str +'.xls', 'rb') as f:
+        data = f.read()
+        os.remove('summary-'+ time_str +'.xls')
+    return data, 200
 
 
     

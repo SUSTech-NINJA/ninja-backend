@@ -22,7 +22,7 @@ def buy_package():
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
     user.current = request.form['result']
-    margin = origin_current - user.current
+    margin = int(origin_current) - int(user.current)
     bill = Bill(user_id=user.id, bill=margin)
     db.session.add(bill)
     db.session.commit()
