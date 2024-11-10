@@ -1,5 +1,5 @@
 import time
-
+from datetime import datetime
 from flask import request, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from app.models import db, Bot, User, Comment
@@ -313,7 +313,7 @@ def post_comment(robotid):
             return jsonify({'content': new_comment.content,
                             'score': new_comment.score,
                             'user_name': user.username,
-                            'time': time.time()}), 200
+                            'time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")}), 200
         except KeyError:
             return jsonify({'msg': 'Missing required fields'}), 400
     else:
@@ -356,4 +356,4 @@ def get_robot_trend():
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
-
+    

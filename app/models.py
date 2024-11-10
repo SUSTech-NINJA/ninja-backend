@@ -158,7 +158,7 @@ class Comment(db.Model):
     bot_id = db.Column(db.Integer, db.ForeignKey('bot.id'), nullable=False)
     content = db.Column(db.String, nullable=True)
     score = db.Column(db.Integer, nullable=False)
-    time = db.Column(db.DateTime, default=datetime.now())
+    time = db.Column(db.DateTime, default=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     def __repr__(self):
         return f'<content {self.content}>'
