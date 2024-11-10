@@ -40,7 +40,8 @@ def robot_list():
                 'price': bot.price,
                 'icon': bot.icon,
                 'rate': average_score,
-                'population': total,
+                'popularity': total,
+                'time': bot.time
             })
         return jsonify(bots_list), 200
     except KeyError:
@@ -80,8 +81,10 @@ def create_robot():
                     'knowledge_base': new_bot.knowledge_base,
                     'price': new_bot.price,
                     'quota': new_bot.quota,
-                    'population': None,
-                    'rate': None})
+                    'popularity': 0,
+                    'rate': 0,
+                    'time': new_bot.time
+    }), 200
 
 
 @robots.route('/robot/<robotid>', methods=['GET'])
@@ -103,7 +106,8 @@ def get_robot(robotid):
                 "quota": robot.quota,
                 "icon": robot.icon,
                 "rate": average_score,
-                "population": total
+                "popularity": total,
+                'time': robot.time
             }
         }
         return jsonify(response), 200
@@ -137,8 +141,9 @@ def get_robot_comments(robotid):
             "quota": robot.quota,
             "icon": robot.icon,
             "rate": average_score,
-            "population": total_score,
-            "comments": comment_list
+            "popularity": total_score,
+            "comments": comment_list,
+            'time': robot.time
         }
 
         return jsonify(response), 200
@@ -175,7 +180,8 @@ def search_robot():
                     "quota": robot.quota,
                     "icon": robot.icon,
                     "rate": average_score,
-                    "population": total
+                    "popularity": total,
+                    'time': robot.time
                 }
             }
             return jsonify(response), 200
@@ -200,7 +206,8 @@ def search_robot():
                     'price': bot.price,
                     'icon': bot.icon,
                     'rate': average_score,
-                    'population': total,
+                    'popularity': total,
+                    'time': bot.time
                 })
             return jsonify(bots_list), 200
         except KeyError:
@@ -259,8 +266,9 @@ def update_robot(robotid):
         'knowledge_base': bot.knowledge_base,
         'price': bot.price,
         'quota': bot.quota,
-        'population': total,
-        'rate': average_score
+        'popularity': total,
+        'rate': average_score,
+        'time': bot.time
     })
 
 
@@ -340,17 +348,94 @@ def selfmodified_robot(uuid):
                 'price': bot.price,
                 'icon': bot.icon,
                 'rate': average_score,
-                'population': total,
+                'popularity': total,
+                'time': bot.time
             })
         return jsonify(bots_list), 200
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
 
 
+def get_average_rate(bot_id):
+    average_score = Comment.query(func.avg(Comment.score)).scalar()
+    total = Comment.query(func.count(Comment.score)).scalar()
+    return average_score, total
+
+def calc_timegap(time1, time2):
+    time1 = time.strptime(time1, "%Y-%m-%d %H:%M:%S")
+    time2 = time.strptime(time2, "%Y-%m-%d %H:%M:%S")
+    time1 = datetime(time1[0], time1[1], time1[2])
+    time2 = datetime(time2[0], time2[1], time2[2])
+    return (time1 - time2).days
+
+
 @robots.route('/robot/trendings', methods=['GET'])
+# body parameter:
+# type: best-rated most-recent most-viewed
+# duration: recent month all
+# recent means within 3 days
 def get_robot_trend():
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
+    bots = Bot.query.all()
+    duration = request.form['duration']
+    type = request.form['type']
+    bots_score = [{'bot_id': bot.id, 'rate': 0, 'total': 0, 'time': bot.time} for bot in bots]
+    timegap = 0 #
+    if duration == 'recent':
+        timegap = 3
+    elif duration == 'month':
+        timegap = 30
+    elif duration == 'all':
+        timegap = 36500
+        
+    comments = Comment.query.all()
+    for comment in comments:
+        time = comment.time
+        if calc_timegap(time, datetime.now().strftime("%Y-%m-%d %H:%M:%S")) < timegap:
+            for bot in bots_score:
+                if bot['bot_id'] == comment.bot_id:
+                    bot['rate'] += comment.score
+                    bot['total'] += 1
+                    
+    for bots in bots_score:
+        bots['rate'] /= bots['total']
+        
+    sorted_bots = [] 
+    if type == 'best-rated':
+        sorted_bots = sorted(bots_score, key=lambda x: x['rate'], reverse=True)
+    if type == 'most-recent':  # 最新发布的
+        sorted_bots = sorted(bots_score, key=lambda x: x['time'], reverse=True)
+    if type == 'most-viewed':
+        sorted_bots = sorted(bots_score, key=lambda x: x['total'], reverse=True)
+        
+    response = [] 
+    for bots in sorted_bots:
+        bot = Bot.query.filter_by(id=bots['bot_id']).first()
+        if len(response) >= 10:
+            break
+        response.append(jsonify({
+            'robotid': bot.id,
+            'robot_name': bot.name,
+            'base_model': bot.base_model,
+            'system_prompt': bot.prompts,
+            'knowledge_base': bot.knowledge_base,
+            'creator': bot.user_id,
+            'price': bot.price,
+            'quota': bot.quota,
+            'icon': bot.icon,
+            'rate': bots['rate'],
+            'popularity': bots['total'],
+            'time': bot.time
+        }))
+        
+    return response, 200
+    
+            
+        
+        
+    
+   
     

@@ -106,6 +106,7 @@ class Bot(db.Model):
     id             = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id        = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
     name           = db.Column(db.String, nullable=False, unique=True)
+    time           = db.Column(db.DateTime, default=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     url            = db.Column(db.String, nullable=False)
     base_model     = db.Column(db.String, nullable=False)
     quota          = db.Column(db.Integer, nullable=True)
