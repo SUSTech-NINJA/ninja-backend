@@ -1,7 +1,7 @@
 [
     [
       "Entitle a conversation",
-      "I wish you to sum up the below conversation and briefly name it with a title in English. The title should be in some words without the period symbol at the end and without any indicators like 'Title' and without quote marks, just some words."
+      "I wish you to sum up the below conversation and briefly name it with a title in English. The title should be in some words without the period symbol at the end and without any indicators like 'Title', 'Conversation Summary' and without quote marks, just some words to describe the conversation. And need to use at most 5 words, without any prefix or suffix. "
     ],
     [
       "Optimize prompts",

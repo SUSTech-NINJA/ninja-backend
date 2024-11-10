@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import json
@@ -107,15 +108,10 @@ def chat_stream(chatid):
                     "type": "image_url",
                     "image_url": { "url": files[i] }
                 })
-            elif mimetypes[i].startswith('audio'):
-                input_files.append({ 
-                    "type": "input_audio",
-                    "input_audio": { "data": files[i], "format": "ogg"}
-                })
             else:
-                input_files.append({ 
+                input_files.append({
                     "type": "text",
-                    "text": base64.b64encode(files[i])
+                    "text": str(base64.b64decode(files[i].replace('data:text/plain;base64,', '')))[2:-1]
                 })
 
         if len(input_files) == 0:
@@ -129,7 +125,6 @@ def chat_stream(chatid):
         chat_info.history = chat_info.history + user_message
         db.session.commit()
 
-        # TODO: Get bot information from database, i.e., url
         response = OpenAI(
             api_key=os.getenv('AIPROXY_API_KEY'),
             base_url="https://api.aiproxy.io/v1"
