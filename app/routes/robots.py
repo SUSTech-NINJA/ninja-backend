@@ -127,7 +127,7 @@ def get_robot(robotid):
         return jsonify({"msg": "Robot not found"}), 404
 
 
-@robots.route('/robot/post/{robotid}', methods=['GET'])
+@robots.route('/robot/post/<robotid>', methods=['GET'])
 def get_robot_comments(robotid):
     robot = Bot.query.filter_by(id=robotid).first()
     user = User.query.filter_by(id=robot.user_id).first()
@@ -163,7 +163,7 @@ def get_robot_comments(robotid):
         return jsonify({"msg": "Robot not found"}), 404
 
 
-@robots.route('/robot/post/{robotid}', methods=['GET'])
+@robots.route('/robot/post/<robotid>', methods=['GET'])
 def search_robot():
     """
     TBD
@@ -309,7 +309,7 @@ def delete_robot(robotid):
     return jsonify({'msg': 'Chat deleted'}), 200
 
 
-@robots.route('/robot/post/{robotid}', methods=['POST'])
+@robots.route('/robot/post/<robotid>', methods=['POST'])
 def post_comment(robotid):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
@@ -317,27 +317,35 @@ def post_comment(robotid):
         return jsonify({'msg': 'Invalid Credential'}), 401
     has_comment = Comment.query.filter_by(user_id=user.id).all()
 
-    if has_comment is None:
+    if has_comment is None or len(has_comment) == 0:
         try:
             new_comment = Comment(user_id=user.id,
                                   user_name=user.username,
                                   bot_id=robotid,
                                   content=request.form['content'],
                                   score=request.form['rate'],
+                                  time=datetime.now()
                                   )
             db.session.add(new_comment)
             db.session.commit()
             return jsonify({'content': new_comment.content,
                             'score': new_comment.score,
                             'user_name': user.username,
-                            'time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")}), 200
+                            'time': new_comment.time}), 200
         except KeyError:
             return jsonify({'msg': 'Missing required fields'}), 400
     else:
-        return jsonify({'msg': 'Comment already exists'}), 403
+        first = has_comment[0]
+        first.content = request.form['content']
+        first.score = request.form['rate']
+        first.time = datetime.now()
+        db.session.commit()
+        return jsonify({'content': first.content,
+                        'score': first.score,
+                        'user_name': user.username,
+                        'time': first.time}), 200
 
-
-@robots.route('/selfmodified_robot/{uuid}', methods=['GET'])
+@robots.route('/selfmodified_robot/<uuid>', methods=['GET'])
 def selfmodified_robot(uuid):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
