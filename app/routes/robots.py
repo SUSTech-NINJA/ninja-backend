@@ -208,9 +208,6 @@ def search_robot():
     return jsonify({'msg': 'Missing required fields'}), 400
 
 
-
-
-
 @robots.route('/robot/<robotid>', methods=['POST'])
 def update_robot(robotid):
     """

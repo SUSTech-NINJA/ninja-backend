@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app import db  # 确保正确导入你的数据库实例
 from app.models import User, Bot  # 确保正确导入你的 User 和 Bot 模型
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
@@ -39,6 +38,7 @@ def get_average_rate_user(user):
         sum += i
     return sum / len(rate)
 
+
 @user.route('/post', methods=['POST'])
 def post():
     token = request.headers.get('Authorization').split()[1]
@@ -47,19 +47,18 @@ def post():
         return jsonify({'msg': 'Invalid Credential'}), 401
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
-    icon = request.form.get('icon')
     # 生成一个8位随机数
     postid = str(uuid.uuid4())[:8]
     receiver.posts.append({
         "postid": postid,
         "sender": sender.id,
-        "timestamp": datetime.now(),
-        "icon": icon,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "content": content,
         "responses": [],
     })
     db.session.commit()
     return jsonify({'message': 'Post successfully'}), 200
+
 
 @user.route('/response', methods=['POST'])
 def response():
@@ -74,7 +73,7 @@ def response():
     response = jsonify({
         "postid": postid,
         "sender": sender.id,
-        "timestamp": datetime.now(),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "icon": icon,
         "content": content,
     })
@@ -84,24 +83,25 @@ def response():
             db.session.commit()
             return jsonify({'message': 'Response successfully'}), 200
     return jsonify({'message': 'Post not found'}), 404
-    
+
 
 @user.route('/user/search', methods=['GET'])
 def search_user():
-    type = request.form.get('type')
+    type = int(request.form.get('type'))
     if type == 1:
         uuid = request.form.get('input')
         user = get_user_by_id(uuid)
         if user is None:
             return jsonify({'msg': 'User not found'}), 404
-        return jsonify([{'uuid': user.id, 
-                        'username': user.username,
-                        'icon' : user.icon,
-                        'intro' : user.intro,
-                        'rate' : user.rate,
-                        'email' : user.email,
-                        }])
-        
+        return jsonify([{
+            'uuid': user.id, 
+            'username': user.username,
+            'icon' : user.icon,
+            'intro' : user.intro,
+            'rate' : user.rate,
+            'email' : user.email,
+        }])
+
     elif type == 2:
         username = request.form.get('input')
         users = get_user_by_username_deblur(username)
@@ -109,13 +109,14 @@ def search_user():
             return jsonify({'msg': 'User not found'}), 404
         result = []
         for user in users:
-            result.append({'uuid': user.id, 
-                            'username': user.username,
-                            'icon' : user.icon,
-                            'intro' : user.intro,
-                            'rate' : user.rate,
-                            'email' : user.email,
-                            })
+            result.append({
+                'uuid': user.id, 
+                'username': user.username,
+                'icon' : user.icon,
+                'intro' : user.intro,
+                'rate' : user.rate,
+                'email' : user.email,
+            })
         return jsonify(result)
 
 
@@ -193,7 +194,6 @@ def conversation(uuid):
                                           'username': get_user_by_id(query.sender).username,
                                           }))
     return jsonify(conversation_list), 200
-        
 
 
 @user.route('/send_message', methods=['POST'])
@@ -208,11 +208,23 @@ def send_message():
     for query in sender.queries:
         if query.sender == receiver.id:
             flag1 = False
-            query.content.append({'sender': sender.id, 'content': content})
+            query.content.append({
+                'sender': sender.id, 
+                'content': content,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            })
             db.session.commit()
             return jsonify({'msg': 'Send successfully'}), 200
     if flag1:
-        sender.queries.append({'sender': receiver.id, 'content': [{'sender': sender.id, 'content': content}]})
+        sender.queries.append({
+            'sender': receiver.id, 
+            'content': [
+                {
+                    'sender': sender.id, 
+                    'content': content,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            ]})
         db.session.commit()
         return jsonify({'msg': 'Send successfully'}), 200
     
@@ -220,20 +232,33 @@ def send_message():
     for query in receiver.queries:
         if query.sender == sender.id:
             flag2 = False
-            query.content.append({'sender': sender.id, 'content': content})
+            query.content.append({
+                'sender': sender.id, 
+                'content': content,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            })
             db.session.commit()
             return jsonify({'msg': 'Send successfully'}), 200
     if flag2:
-        receiver.queries.append({'sender': sender.id, 'content': [{'sender': sender.id, 'content': content}]})
+        receiver.queries.append({
+            'sender': sender.id, 
+            'content': [
+                {
+                    'sender': sender.id,
+                    'content': content,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            ]
+        })
         db.session.commit()
         return jsonify({'msg': 'Send successfully'}), 200
 
 
-@user.route('/get_history/<uuid>', methods=['GET'])
-def get_history(uuid):
+@user.route('/get_history/<userid>', methods=['GET'])
+def get_history(userid):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
-    opponent = get_user_by_id(uuid)
+    opponent = get_user_by_id(userid)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
     if opponent is None:
@@ -242,8 +267,23 @@ def get_history(uuid):
     for query in user.queries:
         if query.sender == opponent.id:
             for content in query.content:
-                history.append(jsonify({'sender': content.sender,
-                                        'icon': get_user_by_id(content.sender).icon,
-                                        'content': content.content,
-                                        }))
+                history.append(jsonify({
+                    'sender': content.sender,
+                    'icon': get_user_by_id(content.sender).icon,
+                    'content': content.content,
+                }))
     return jsonify(history), 200
+
+
+@user.route('/update/<userid>', methods=['POST'])
+def update(userid):
+    user = get_user_by_id(userid)
+    if user is None:
+        return jsonify({'msg': 'User not found'}), 404
+
+    user.username = request.form.get('username') is not None and request.form.get('username') or user.username
+    user.email = request.form.get('email') is not None and request.form.get('email') or user.email
+    user.intro = request.form.get('intro') is not None and request.form.get('intro') or user.intro
+    user.icon = request.form.get('icon') is not None and request.form.get('icon') or user.icon
+    db.session.commit()
+    return jsonify({'msg': 'Update successfully'}), 200
