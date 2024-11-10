@@ -48,14 +48,42 @@ def post():
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
     icon = request.form.get('icon')
-    
+    # 生成一个8位随机数
+    postid = str(uuid.uuid4())[:8]
     receiver.posts.append({
+        "postid": postid,
         "sender": sender.id,
         "timestamp": datetime.now(),
-        "content": content
+        "icon": icon,
+        "content": content,
+        "responses": [],
     })
     db.session.commit()
     return jsonify({'message': 'Post successfully'}), 200
+
+@user.route('/response', methods=['POST'])
+def response():
+    token = request.headers.get('Authorization').split()[1]
+    sender = get_user(token)
+    if sender is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+    content = request.form.get('content')
+    postid = request.form.get('postid')
+    receiver = get_user_by_id(request.form.get('uuid'))
+    icon = request.form.get('icon')
+    response = jsonify({
+        "postid": postid,
+        "sender": sender.id,
+        "timestamp": datetime.now(),
+        "icon": icon,
+        "content": content,
+    })
+    for post in receiver.posts:
+        if post.postid == postid:
+            post.responses.append(response)
+            db.session.commit()
+            return jsonify({'message': 'Response successfully'}), 200
+    return jsonify({'message': 'Post not found'}), 404
     
 
 @user.route('/user/search', methods=['GET'])
@@ -120,16 +148,26 @@ def get_user_detail(userid):
     PostInfo = []
     Post = user.posts
     for id, post in enumerate(Post):
-        PostInfo.append(jsonify({'postid': str(id),
+        PostInfo.append(jsonify({'postid': post.postid,
                                  'userid': post.sender,
                                  'username': get_user_by_id(post.sender).username,
                                  'time': post.timestamp,
                                  'content': post.content,
-                                 'response': [], #TODO
-                                 'rate': 0, #TODO
-                                 'type': '', #TODO
+                                 'responses': post.responses,
+                                 'rate': 0, 
+                                 'type': 'post',
                                  'icon': get_user_by_id(post.sender).icon
                                  }))
+    PostInfo.append(jsonify({'postid': '',
+                             'userid': '',
+                             'username': '',
+                             'time': '',
+                             'content': '',
+                             'responses': [],
+                             'rate': get_average_rate_user(user),
+                             'type': 'rate',
+                             'icon': ''
+                                }))
     return jsonify({'UserInfo': UserInfo, 'robot': BotInfo, 'post': PostInfo}) 
 
                                  
@@ -143,25 +181,69 @@ def evaluate_user(uuid):
     return jsonify({'msg': 'Rate successfully'}), 200
 
 
-@user.route('/conversation/<uuid>', methods=['GET'])
+@user.route('/conversation/<uuid>', methods=['GET']) # 获取私聊列表
 def conversation(uuid):
-    """
-    TBD
-    """
-    pass
+    user = get_user_by_id(uuid)
+    if user is None:
+        return jsonify({'msg': 'User not found'}), 404
+    conversation_list = []
+    for query in user.queries:
+        conversation_list.append(jsonify({'uuid': query.sender,
+                                          'icon': get_user_by_id(query.sender).icon,
+                                          'username': get_user_by_id(query.sender).username,
+                                          }))
+    return jsonify(conversation_list), 200
+        
 
 
 @user.route('/send_message', methods=['POST'])
 def send_message():
-    """
-    TBD
-    """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    sender = get_user(token)
+    if sender is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+    content = request.form.get('content')
+    receiver = get_user_by_id(request.form.get('uuid'))
+    flag1 = True
+    for query in sender.queries:
+        if query.sender == receiver.id:
+            flag1 = False
+            query.content.append({'sender': sender.id, 'content': content})
+            db.session.commit()
+            return jsonify({'msg': 'Send successfully'}), 200
+    if flag1:
+        sender.queries.append({'sender': receiver.id, 'content': [{'sender': sender.id, 'content': content}]})
+        db.session.commit()
+        return jsonify({'msg': 'Send successfully'}), 200
+    
+    flag2 = True
+    for query in receiver.queries:
+        if query.sender == sender.id:
+            flag2 = False
+            query.content.append({'sender': sender.id, 'content': content})
+            db.session.commit()
+            return jsonify({'msg': 'Send successfully'}), 200
+    if flag2:
+        receiver.queries.append({'sender': sender.id, 'content': [{'sender': sender.id, 'content': content}]})
+        db.session.commit()
+        return jsonify({'msg': 'Send successfully'}), 200
 
 
 @user.route('/get_history/<uuid>', methods=['GET'])
 def get_history(uuid):
-    """
-    TBD
-    """
-    pass
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
+    opponent = get_user_by_id(uuid)
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+    if opponent is None:
+        return jsonify({'msg': 'User not found'}), 404
+    history = []
+    for query in user.queries:
+        if query.sender == opponent.id:
+            for content in query.content:
+                history.append(jsonify({'sender': content.sender,
+                                        'icon': get_user_by_id(content.sender).icon,
+                                        'content': content.content,
+                                        }))
+    return jsonify(history), 200

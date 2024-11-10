@@ -48,29 +48,32 @@ class User(db.Model):
     rate: [1, 2, 3, 4, 5]
     posts: [
         {
+            "postid": "postid",
             "sender": "uuid", 
             "timestamp": "datetime",
-            "content": "string"
+            "content": "string",
+            "icon": "string",
+            "responses": [
+                {
+                    "postid": "postid",
+                    "sender": "uuid",
+                    "timestamp": "datetime",
+                    "icon": "string",
+                    "content": "string"
+                },
+                {
+                    "postid": "postid",
+                    "sender": "uuid",
+                    "timestamp": "datetime",
+                    "icon": "string",
+                    "content": "string"
+                }
+            ]
         },
     ]
-    queries1: [
+    queries: [
         {
             "sender": "uuid", 
-            "content": [
-                {
-                    "sender": "uuid1",
-                    "content": "string"
-                },
-                {
-                    "sender": "uuid2",
-                    "content": "string"
-                },
-            ]
-        }
-    ]
-    queries2: [
-        {
-            "receiver": "uuid", 
             "content": [
                 {
                     "sender": "uuid1",
@@ -92,8 +95,7 @@ class User(db.Model):
     current        = db.Column(db.Integer, nullable=False, default=0)  # money
     rate           = db.Column(JSON, nullable=True)
     posts          = db.Column(JSON, nullable=True)
-    queries1       = db.Column(JSON, nullable=True)
-    queries2       = db.Column(JSON, nullable=True)
+    queries       = db.Column(JSON, nullable=True)
     credit         = db.Column(JSON, nullable=True)
 
     def __repr__(self):
