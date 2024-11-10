@@ -144,14 +144,6 @@ def get_user_detail(userid):
             'type': 'post',
             'icon': get_user_by_id(post['sender']).icon
         })
-
-    PostInfo.append({
-        'postid': '', 'userid': '', 'username': '', 'time': '', 'content': '',
-        'responses': [],
-        'rate': get_average_rate_user(user),
-        'type': 'rate',
-        'icon': ''
-    })
     return jsonify({'UserInfo': UserInfo, 'robot': BotInfo, 'post': PostInfo})
 
 
