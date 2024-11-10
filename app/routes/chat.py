@@ -36,7 +36,8 @@ def create_chat():
             history=[{"role": "system", "content": request.json['prompts']}],
             settings={
                 "model": request.json['model']
-            }
+            },
+            robotid=request.json['robotid']
         )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
@@ -71,7 +72,8 @@ def chat_stream(chatid):
         return jsonify({
             'base-model': chat_info.settings['model'],
             'title': chat_info.title,
-            'messages': chat_info.history
+            'messages': chat_info.history,
+            'robotid': chat_info.robotid
         }), 200
 
     # Get Response From GPT

@@ -145,6 +145,7 @@ class Session(db.Model):
 class Chat(db.Model):
     id             = db.Column(GUID(), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id        = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
+    robotid        = db.Column(db.Integer, db.ForeignKey('bot.id'), nullable=False)
     title          = db.Column(db.String, nullable=False)
     settings       = db.Column(db.JSON, nullable=True)
     history        = db.Column(db.JSON, nullable=False)

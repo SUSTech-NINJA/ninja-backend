@@ -41,23 +41,22 @@ def create_default_robot(): # create a new bot
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
-    print(request.form['base_model_name'],request.form['base_model_id'],request.form['price'],request.form['icon'],request.form['model_tokens_limitation'])
-
     bot = Bot.query.filter_by(name=request.form['base_model_name']).first()
     if bot is not None:
         return jsonify({'msg': 'This Base Model already Exists'}), 401
     try:
         new_bot = Bot(user_id=user.id,
                       name=request.form['base_model_name'],
-                      url='1',
                       base_model=request.form['base_model_id'],
                       prompts="",
                       price=request.form['price'],
                       icon=request.form['icon'],
                       quota=request.form['model_tokens_limitation'],
                       knowledge_base="",
-                      is_default=True
-                      )
+                      is_default=True,
+                      rate=None,
+                      time=datetime.now()
+                    )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
     db.session.add(new_bot)
@@ -71,8 +70,9 @@ def create_default_robot(): # create a new bot
                     'knowledge_base': new_bot.knowledge_base,
                     'price': new_bot.price,
                     'quota': new_bot.quota,
-                    'population': None,
-                    'rate': None})
+                    'popularity': 0,
+                    'rate': 0,
+                    'time': new_bot.time})
 
 @admin.route('/admin/robot/update/<base_model_id>', methods=['POST'])
 def update_robot(base_model_id):
@@ -106,8 +106,10 @@ def update_robot(base_model_id):
                     'knowledge_base': bot.knowledge_base,
                     'price': bot.price,
                     'quota': bot.quota,
-                    'population': None,
-                    'rate': None})
+                    'popularity': bot.popularity,
+                    'rate': bot.rate,
+                    'time': bot.time
+                    })
 
 @admin.route('/admin/robot/update/<base_model_id>', methods=['DELETE'])
 def delete_robot(base_model_id):

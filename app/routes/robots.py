@@ -27,8 +27,14 @@ def robot_list():
     bots_list = []
     try:
         for bot in bots:
-            average_score = Comment.query(func.avg(Comment.score)).scalar()
-            total = Comment.query(func.count(Comment.score)).scalar()
+            try:
+                average_score = 0 if Comment.query(func.avg(Comment.score)) is None \
+                    else Comment.query(func.avg(Comment.score)).scalar()
+                total = 0 if Comment.query(func.count(Comment.score)) is None \
+                    else Comment.query(func.count(Comment.score)).scalar()
+            except:
+                average_score = 0
+                total = 0
             bots_list.append({
                 'robotid': bot.id,
                 'robot_name': bot.name,
@@ -36,7 +42,7 @@ def robot_list():
                 'system_prompt': bot.prompts,
                 'knowledge_base': bot.knowledge_base,
                 'creator': bot.user_id,
-                'quota': bot.usage_limit,
+                'quota': bot.quota,
                 'price': bot.price,
                 'icon': bot.icon,
                 'rate': average_score,
@@ -67,7 +73,8 @@ def create_robot():
                       quota=request.form.get('quota'),
                       knowledge_base=request.form.get('knowledge_base'),
                       is_default=False,
-                      rate = None,
+                      rate=None,
+                      time=datetime.now()
         )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
@@ -92,8 +99,12 @@ def create_robot():
 def get_robot(robotid):
     robot = Bot.query.filter_by(id=robotid).first()
     user = User.query.filter_by(id=robot.user_id).first()
-    average_score = Comment.query(func.avg(Comment.score)).scalar()
-    total = Comment.query(func.count(Comment.score)).scalar()
+    try:
+        average_score = Comment.query(func.avg(Comment.score)).scalar()
+        total = Comment.query(func.count(Comment.score)).scalar()
+    except:
+        average_score = 0
+        total = 0
     if robot:
         response = {
             "info": {
@@ -102,7 +113,7 @@ def get_robot(robotid):
                 "base_model": robot.base_model,
                 "system_prompt": robot.prompts,
                 "knowledge_base": robot.knowledge_base,
-                "creator": user.name,
+                "creator": user.username,
                 "price": robot.price,
                 "quota": robot.quota,
                 "icon": robot.icon,

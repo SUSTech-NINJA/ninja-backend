@@ -117,18 +117,19 @@ def get_user_detail(userid):
     Bot = get_robot_by_uuid(userid)
     BotInfo = []
     for bot in Bot:
+        print(bot.rate)
         BotInfo.append({
-            'robotid': bot.id,  
+            'robotid': bot.id,
             'robot_name': bot.name,
             'base_model': bot.base_model,
-            'system_prompt': bot.system_prompt,
+            'system_prompt': bot.prompts,
             'knowledge_base': bot.knowledge_base,
             'creater': userid,
             'price': bot.price,
             'quota': bot.quota,
             'icon': bot.icon,
             'rate': get_average_rate_model(bot),
-            'popularity': len(bot.rate)
+            'popularity': 0 if bot.rate is None else len(bot.rate),
         })
     PostInfo = []
     Post = user.posts
@@ -301,6 +302,8 @@ def get_robot_by_uuid(uuid): # 返回所有该用户创建的机器人
 
 def get_average_rate_model(model):
     rate = model.rate
+    if rate is None:
+        return 0
     if len(rate) == 0:
         return 0
     sum = 0
@@ -310,6 +313,8 @@ def get_average_rate_model(model):
 
 def get_average_rate_user(user):
     rate = user.rate
+    if rate is None:
+        return 0
     if len(rate) == 0:
         return 0
     sum = 0
