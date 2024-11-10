@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
-# Same as the filename
+
 auth = Blueprint('auth', __name__)
 
 
@@ -71,9 +71,7 @@ def register():
         username=username,
         password=generate_password_hash(password),
         admin=(username == 'admin'),
-        settings={
-            'email': email
-        }
+        email=email,
     )
 
     db.session.add(new_user)

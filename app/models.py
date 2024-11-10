@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.types import TypeDecorator, CHAR, ARRAY
+from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.sqlite import JSON
+import base64
 
 db = SQLAlchemy()
 
@@ -90,14 +91,15 @@ class User(db.Model):
     username       = db.Column(db.String, nullable=False, unique=True)
     password       = db.Column(db.String, nullable=False)
     admin          = db.Column(db.Boolean, nullable=False, default=False)
-    settings       = db.Column(JSON, nullable=True)
+    settings       = db.Column(JSON, nullable=True, default={})
     current        = db.Column(db.Integer, nullable=False, default=0)  # money
     intro          = db.Column(db.String, nullable=True)
-    icon           = db.Column(db.String, nullable=True)
+    icon           = db.Column(db.String, nullable=False, default=base64.b64encode(open('app/assets/default_avatar.png', 'rb').read()).decode())
+    email          = db.Column(db.String, nullable=False)
     rate           = db.Column(JSON, nullable=True, default=[])
     credit         = db.Column(JSON, nullable=True, default=[])
     posts          = db.Column(JSON, nullable=True, default=[])
-    queries        = db.Column(JSON, nullable=True)
+    queries        = db.Column(JSON, nullable=True, default=[])
 
     def __repr__(self):
         return f'<User {self.username}>'
