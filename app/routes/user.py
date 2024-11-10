@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app import db  # 确保正确导入你的数据库实例
-from app.models import User, Bot  # 确保正确导入你的 User 和 Bot 模型
+from app.models import db, User, Bot  # 确保正确导入你的 User 和 Bot 模型
 from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
@@ -16,13 +15,15 @@ def post():
     sender = get_user(token)
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
+
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
+
     # 生成一个8位随机数
     postid = str(uuid.uuid4())[:8]
     receiver.posts.append({
         "postid": postid,
-        "sender": sender.id,
+        "sender": str(sender.id),
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "content": content,
         "responses": [],
@@ -37,22 +38,25 @@ def response():
     sender = get_user(token)
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
+
     content = request.form.get('content')
     postid = request.form.get('postid')
     receiver = get_user_by_id(request.form.get('uuid'))
-    icon = request.form.get('icon')
+
     response = jsonify({
         "postid": postid,
-        "sender": sender.id,
+        "sender": str(sender.id),
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "icon": icon,
+        "icon": sender.icon,
         "content": content,
     })
+
     for post in receiver.posts:
-        if post.postid == postid:
-            post.responses.append(response)
+        if post['postid'] == postid:
+            post['responses'].append(response)
             db.session.commit()
             return jsonify({'message': 'Response successfully'}), 200
+
     return jsonify({'message': 'Post not found'}), 404
 
 
@@ -64,8 +68,9 @@ def search_user():
         user = get_user_by_id(uuid)
         if user is None:
             return jsonify({'msg': 'User not found'}), 404
+
         return jsonify([{
-            'uuid': user.id, 
+            'uuid': str(user.id), 
             'username': user.username,
             'icon' : user.icon,
             'intro' : user.intro,
@@ -78,10 +83,11 @@ def search_user():
         users = get_user_by_username_deblur(username)
         if users is None:
             return jsonify({'msg': 'User not found'}), 404
+
         result = []
         for user in users:
             result.append({
-                'uuid': user.id, 
+                'uuid': str(user.id), 
                 'username': user.username,
                 'icon' : user.icon,
                 'intro' : user.intro,
@@ -94,7 +100,9 @@ def search_user():
 @user.route('/user/<userid>', methods=['GET'])
 def get_user_detail(userid):
     user = get_user_by_id(userid)
-    if user is None:
+    token = request.headers.get('Authorization').split()[1]
+    token_user = get_user(token)
+    if user is None or not token_user.admin:
         return jsonify({'msg': 'User not found'}), 404
 
     UserInfo = {
@@ -126,23 +134,19 @@ def get_user_detail(userid):
     Post = user.posts
     for id, post in enumerate(Post):
         PostInfo.append({
-            'postid': post.postid,
-            'userid': post.sender,
-            'username': get_user_by_id(post.sender).username,
-            'time': post.timestamp,
-            'content': post.content,
-            'responses': post.responses,
+            'postid': post['postid'],
+            'userid': post['sender'],
+            'username': get_user_by_id(post['sender']).username,
+            'time': post['timestamp'],
+            'content': post['content'],
+            'responses': post['responses'],
             'rate': 0, 
             'type': 'post',
-            'icon': get_user_by_id(post.sender).icon
+            'icon': get_user_by_id(post['sender']).icon
         })
 
     PostInfo.append({
-        'postid': '',
-        'userid': '',
-        'username': '',
-        'time': '',
-        'content': '',
+        'postid': '', 'userid': '', 'username': '', 'time': '', 'content': '',
         'responses': [],
         'rate': get_average_rate_user(user),
         'type': 'rate',
@@ -156,23 +160,30 @@ def evaluate_user(uuid):
     user = get_user_by_id(uuid)
     if user is None:
         return jsonify({'msg': 'User not found'}), 404
+
     rate = request.form.get('rate')
-    user.rate.append(rate)
+    try:
+        user.rate = user.rate + [int(rate)]
+    except:
+        return jsonify({'msg': 'Invalid rate'}), 400
+
+    db.session.commit()
     return jsonify({'msg': 'Rate successfully'}), 200
 
 
-@user.route('/conversation/<uuid>', methods=['GET']) # 获取私聊列表
-def conversation(uuid):
-    user = get_user_by_id(uuid)
+@user.route('/conversation', methods=['GET']) # 获取私聊列表
+def conversation():
+    token = request.headers.get('Authorization').split()[1]
+    user = get_user(token)
     if user is None:
         return jsonify({'msg': 'User not found'}), 404
 
     conversation_list = []
     for query in user.queries:
         conversation_list.append({
-            'uuid': query.sender,
-            'icon': get_user_by_id(query.sender).icon,
-            'username': get_user_by_id(query.sender).username,
+            'uuid': query['sender'],
+            'icon': get_user_by_id(query['sender']).icon,
+            'username': get_user_by_id(query['sender']).username,
         })
     return jsonify(conversation_list), 200
 
@@ -187,61 +198,66 @@ def send_message():
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
     flag1 = True
+
     for query in sender.queries:
         if query.sender == receiver.id:
             flag1 = False
             query.content.append({
-                'sender': sender.id, 
+                'sender': str(sender.id),
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
             db.session.commit()
-            return jsonify({'msg': 'Send successfully'}), 200
 
     if flag1:
         sender.queries.append({
-            'sender': receiver.id, 
+            'sender': str(receiver.id),
             'content': [
                 {
-                    'sender': sender.id, 
+                    'sender': str(sender.id), 
                     'content': content,
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
-            ]})
+            ]
+        })
+
         db.session.commit()
-        return jsonify({'msg': 'Send successfully'}), 200
 
     flag2 = True
     for query in receiver.queries:
         if query.sender == sender.id:
             flag2 = False
             query.content.append({
-                'sender': sender.id, 
+                'sender': str(sender.id), 
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
             db.session.commit()
-            return jsonify({'msg': 'Send successfully'}), 200
 
     if flag2:
         receiver.queries.append({
-            'sender': sender.id, 
+            'sender': str(sender.id), 
             'content': [
                 {
-                    'sender': sender.id,
+                    'sender': str(sender.id),
                     'content': content,
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 }
             ]
         })
         db.session.commit()
-        return jsonify({'msg': 'Send successfully'}), 200
+
+    print(get_user_by_id(request.form.get('uuid')).queries)
+    print(get_user(token).queries)
+
+    return jsonify({'msg': 'Send successfully'}), 200
 
 
 @user.route('/get_history/<userid>', methods=['GET'])
 def get_history(userid):
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
+    print(user.queries)
     opponent = get_user_by_id(userid)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
@@ -251,19 +267,22 @@ def get_history(userid):
 
     history = []
     for query in user.queries:
-        if query.sender == opponent.id:
-            for content in query.content:
-                history.append(jsonify({
-                    'sender': content.sender,
-                    'icon': get_user_by_id(content.sender).icon,
-                    'content': content.content,
-                }))
+        if query['sender'] == str(opponent.id):
+            for content in query['content']:
+                history.append({
+                    'sender': content['sender'],
+                    'icon': get_user_by_id(content['sender']).icon,
+                    'content': content['content'],
+                })
     return jsonify(history), 200
 
 
 @user.route('/update/<userid>', methods=['POST'])
 def update(userid):
-    user = get_user_by_id(userid)
+    token = request.headers.get('Authorization').split()[1]
+    token_user = get_user(token)
+
+    user = token_user.admin and get_user_by_id(userid) or token_user
     if user is None:
         return jsonify({'msg': 'User not found'}), 404
 

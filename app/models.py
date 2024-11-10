@@ -1,10 +1,11 @@
 import uuid
+import base64
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import TypeDecorator, CHAR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.dialects.sqlite import JSON
-import base64
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 
 db = SQLAlchemy()
 
@@ -98,8 +99,8 @@ class User(db.Model):
     email          = db.Column(db.String, nullable=False)
     rate           = db.Column(JSON, nullable=True, default=[])
     credit         = db.Column(JSON, nullable=True, default=[])
-    posts          = db.Column(JSON, nullable=True, default=[])
-    queries        = db.Column(JSON, nullable=True, default=[])
+    posts          = db.Column(MutableList.as_mutable(JSON), nullable=True, default=[])
+    queries        = db.Column(MutableList.as_mutable(JSON), nullable=True, default=[])
 
     def __repr__(self):
         return f'<User {self.username}>'
