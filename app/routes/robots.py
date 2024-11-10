@@ -60,14 +60,15 @@ def create_robot():
     try:
         new_bot = Bot(user_id=user.id,
                       name=request.form['name'],
-                      url='1',
                       base_model=request.form['base_model_id'],
                       prompts=request.form['system_prompt'],
                       price=request.form['price'],
                       icon=request.form['icon'],
                       quota=request.form.get('quota'),
-                      knowledge_base=request.form.get('knowledge_base')
-                      )
+                      knowledge_base=request.form.get('knowledge_base'),
+                      is_default=False,
+                      rate = None,
+        )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
     db.session.add(new_bot)
@@ -269,7 +270,7 @@ def update_robot(robotid):
         'popularity': total,
         'rate': average_score,
         'time': bot.time
-    })
+    }), 200
 
 
 @robots.route('/robot/<robotid>', methods=['DELETE'])
