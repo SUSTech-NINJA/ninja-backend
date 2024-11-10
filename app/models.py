@@ -94,10 +94,10 @@ class User(db.Model):
     settings       = db.Column(JSON, nullable=True)
     current        = db.Column(db.Integer, nullable=False, default=0)  # money
     rate           = db.Column(JSON, nullable=True)
+    credit         = db.Column(JSON, nullable=True)
     posts          = db.Column(JSON, nullable=True)
     queries       = db.Column(JSON, nullable=True)
-    credit         = db.Column(JSON, nullable=True)
-
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
@@ -118,6 +118,13 @@ class Bot(db.Model):
     def __repr__(self):
         return f'<Bot {self.base_model}>'
 
+class Bill(db.Model):
+    id             = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id        = db.Column(GUID(), db.ForeignKey('user.id'), nullable=False)
+    bill           = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f'<Bill {self.amount}>'
 
 class Session(db.Model):
     id             = db.Column(db.Integer, primary_key=True, autoincrement=True)
