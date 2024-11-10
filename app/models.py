@@ -52,20 +52,17 @@ class User(db.Model):
             "sender": "uuid", 
             "timestamp": "datetime",
             "content": "string",
-            "icon": "string",
             "responses": [
                 {
                     "postid": "postid",
                     "sender": "uuid",
                     "timestamp": "datetime",
-                    "icon": "string",
                     "content": "string"
                 },
                 {
                     "postid": "postid",
                     "sender": "uuid",
                     "timestamp": "datetime",
-                    "icon": "string",
                     "content": "string"
                 }
             ]
@@ -77,10 +74,12 @@ class User(db.Model):
             "content": [
                 {
                     "sender": "uuid1",
+                    "timestamp": "datetime",
                     "content": "string"
                 },
                 {
                     "sender": "uuid2",
+                    "timestamp": "datetime",
                     "content": "string"
                 },
             ]
@@ -93,11 +92,13 @@ class User(db.Model):
     admin          = db.Column(db.Boolean, nullable=False, default=False)
     settings       = db.Column(JSON, nullable=True)
     current        = db.Column(db.Integer, nullable=False, default=0)  # money
-    rate           = db.Column(JSON, nullable=True)
-    credit         = db.Column(JSON, nullable=True)
-    posts          = db.Column(JSON, nullable=True)
-    queries       = db.Column(JSON, nullable=True)
-    
+    intro          = db.Column(db.String, nullable=True)
+    icon           = db.Column(db.String, nullable=True)
+    rate           = db.Column(JSON, nullable=True, default=[])
+    credit         = db.Column(JSON, nullable=True, default=[])
+    posts          = db.Column(JSON, nullable=True, default=[])
+    queries        = db.Column(JSON, nullable=True)
+
     def __repr__(self):
         return f'<User {self.username}>'
 
