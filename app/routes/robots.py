@@ -163,7 +163,7 @@ def get_robot_comments(robotid):
         return jsonify({"msg": "Robot not found"}), 404
 
 
-@robots.route('/robot/post/<robotid>', methods=['GET'])
+@robots.route('/robot/search', methods=['GET'])
 def search_robot():
     """
     TBD
@@ -172,56 +172,54 @@ def search_robot():
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
-    type = request.form['type']
+    type = int(request.args.get('type'))
+
     #search by robotid
     if type == 1:
-        robot = Bot.query.filter_by(id=int(request.form['input'])).first()
-        user = User.query.filter_by(id=robot.user_id).first()
-        average_score = Comment.query(func.avg(Comment.score)).scalar()
-        total = Comment.query(func.count(Comment.score)).scalar()
-        if robot:
-            response = {
-                "info": {
-                    "robotid": robot.id,
-                    "robot_name": robot.name,
-                    "base_model": robot.base_model,
-                    "system_prompt": robot.prompts,
-                    "knowledge_base": robot.knowledge_base,
-                    "creator": user.name,
-                    "price": robot.price,
-                    "quota": robot.quota,
-                    "icon": robot.icon,
-                    "rate": average_score,
-                    "popularity": total,
-                    'time': robot.time
-                }
-            }
-            return jsonify(response), 200
+        bot = Bot.query.filter_by(id=int(request.args.get('string'))).first()
+        user = User.query.filter_by(id=bot.user_id).first()
+        average_score = db.session.query(func.avg(Comment.score)).scalar()
+        total_score = db.session.query(func.sum(Comment.score)).scalar()
+        if bot:
+            return jsonify({
+                    'robotid': bot.id,
+                    'robot_name': bot.name,
+                    'base_model': bot.base_model,
+                    'knowledge_base': bot.knowledge_base,
+                    'creator': bot.user_id,
+                    'price': bot.price,
+                    'quota': bot.quota,
+                    'icon': bot.icon,
+                    'rate': average_score,
+                    'popularity': total_score,
+                    'time': bot.time
+                }), 200
         else:
             return jsonify({"msg": "Robot not found"}), 404
     #search by keywords
     elif type == 2:
-        robots = Bot.query.filter_by(Bot.name.like(request.form['input'])).all()
-        bots_list = []
+        search_string = request.args.get('string', "")
+        robots = Bot.query.filter(Bot.name.like(f"%{search_string}%")).all()
+        response = [] 
         try:
             for bot in robots:
-                average_score = Comment.query(func.avg(Comment.score)).scalar()
-                total = Comment.query(func.count(Comment.score)).scalar()
-                bots_list.append({
+                average_score = db.session.query(func.avg(Comment.score)).scalar()
+                total_score = db.session.query(func.sum(Comment.score)).scalar()
+                response.append({
                     'robotid': bot.id,
                     'robot_name': bot.name,
                     'base_model': bot.base_model,
-                    'system_prompt': bot.prompts,
                     'knowledge_base': bot.knowledge_base,
                     'creator': bot.user_id,
-                    'quota': bot.usage_limit,
                     'price': bot.price,
+                    'quota': bot.quota,
                     'icon': bot.icon,
                     'rate': average_score,
-                    'popularity': total,
+                    'popularity': total_score,
                     'time': bot.time
                 })
-            return jsonify(bots_list), 200
+
+            return jsonify(response), 200
         except KeyError:
             return jsonify({'msg': 'Missing required fields'}), 400
     return jsonify({'msg': 'Missing required fields'}), 400
