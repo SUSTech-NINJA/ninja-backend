@@ -62,24 +62,27 @@ def response():
 
 @user.route('/user/search', methods=['GET'])
 def search_user():
-    type = int(request.form.get('type'))
+    type = int(request.args.get('type'))
     if type == 1:
-        uuid = request.form.get('input')
-        user = get_user_by_id(uuid)
-        if user is None:
-            return jsonify({'msg': 'User not found'}), 404
+        uuid = request.args.get('input')
+        try:
+            user = get_user_by_id(uuid)
+            if user is None:
+                return jsonify({'msg': 'User not found'}), 404
 
-        return jsonify([{
-            'uuid': str(user.id), 
-            'username': user.username,
-            'icon' : user.icon,
-            'intro' : user.intro,
-            'rate': get_average_rate_user(user),
-            'email' : user.email,
-        }])
+            return jsonify([{
+                'uuid': str(user.id), 
+                'username': user.username,
+                'icon' : user.icon,
+                'intro' : user.intro,
+                'rate': get_average_rate_user(user),
+                'email' : user.email,
+            }]), 200
+        except Exception as e:
+            return jsonify({'msg': 'Invalid uuid.'}), 404
 
     elif type == 2:
-        username = request.form.get('input')
+        username = request.args.get('input')
         users = get_user_by_username_deblur(username)
         if users is None:
             return jsonify({'msg': 'User not found'}), 404
@@ -94,7 +97,7 @@ def search_user():
                 'rate': get_average_rate_user(user),
                 'email' : user.email,
             })
-        return jsonify(result)
+        return jsonify(result), 200
 
 
 @user.route('/user/<userid>', methods=['GET'])
