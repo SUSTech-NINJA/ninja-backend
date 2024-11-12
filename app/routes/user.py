@@ -3,6 +3,7 @@ from app.models import db, User, Bot  # 确保正确导入你的 User 和 Bot �
 from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
+from send_email import send_email
 import uuid
 
 
@@ -19,7 +20,6 @@ def post():
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
 
-    # 生成一个8位随机数
     postid = str(uuid.uuid4())[:8]
     receiver.posts.append({
         "postid": postid,
@@ -28,6 +28,9 @@ def post():
         "content": content,
         "responses": [],
     })
+    send_email(receiver.email, 
+               f"用户名为 {sender.username} 的用户在您的主页上发布了新的帖子：\n{content}', 您可以前往您的主页查看详情。)",
+                '您有新的帖子')
     db.session.commit()
     return jsonify({'message': 'Post successfully'}), 200
 
@@ -158,6 +161,11 @@ def evaluate_user(uuid):
         return jsonify({'msg': 'User not found'}), 404
 
     rate = request.form.get('rate')
+    token = request.headers.get('Authorization').split()[1]
+    sender = get_user(token)
+    if sender is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+    send_email(user.email, f"用户名为 {sender.username} 的用户对您进行了评价，评分为 {rate} 分。", '您有新的评价')
     try:
         user.rate = user.rate + [int(rate)]
     except:
@@ -194,7 +202,7 @@ def send_message():
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
     flag1 = True
-
+    send_email(receiver.email, f"用户名为 {sender.username} 的用户给您发送了一条消息：\n{content}", '您有新的消息')
     for query in sender.queries:
         if query.sender == receiver.id:
             flag1 = False
