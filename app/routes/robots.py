@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from flask import request, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from app.models import db, Bot, User, Comment
+from app.models import db, Bot, User, Comment, Chat
 from app.routes.auth import get_user
 from sqlalchemy import func
 
@@ -23,10 +23,56 @@ def robot_list():
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
-    bots = Bot.query.all()
+
+    bots = (
+        db.session.query(Bot, func.count(Chat.id).label('chat_count'))
+        .join(Chat)
+        .group_by(Bot.id)
+        .order_by(func.count(Chat.id).desc())
+        .all()
+    )
+    if len(bots) == 0:
+        bots = (
+            db.session.query(Bot, func.count(Comment.id).label('chat_count'))
+            .join(Comment)
+            .group_by(Bot.id)
+            .order_by(func.count(Comment.id).desc())
+            .limit(3)
+        )
+        if len(bots) == 0:
+            bots = Bot.query.limit(3)
+            bots_list = []
+            try:
+                for bot in bots:
+                    try:
+                        average_score = 0 if Comment.query(func.avg(Comment.score)) is None \
+                            else Comment.query(func.avg(Comment.score)).scalar()
+                        total = 0 if Comment.query(func.count(Comment.score)) is None \
+                            else Comment.query(func.count(Comment.score)).scalar()
+                    except:
+                        average_score = 0
+                        total = 0
+                    bots_list.append({
+                        'robotid': bot.id,
+                        'robot_name': bot.name,
+                        'base_model': bot.base_model,
+                        'system_prompt': bot.prompts,
+                        'knowledge_base': bot.knowledge_base,
+                        'creator': bot.user_id,
+                        'quota': bot.quota,
+                        'price': bot.price,
+                        'icon': bot.icon,
+                        'rate': average_score,
+                        'popularity': total,
+                        'time': bot.time
+                    })
+                return jsonify(bots_list), 200
+            except KeyError:
+                return jsonify({'msg': 'Missing required fields'}), 400
+
     bots_list = []
     try:
-        for bot in bots:
+        for bot, chat_count in bots:
             try:
                 average_score = 0 if Comment.query(func.avg(Comment.score)) is None \
                     else Comment.query(func.avg(Comment.score)).scalar()
@@ -74,8 +120,8 @@ def create_robot():
                       knowledge_base=request.form.get('knowledge_base'),
                       is_default=False,
                       rate=None,
-                      time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        )
+                      time=datetime.now()
+                      )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
     db.session.add(new_bot)
@@ -92,7 +138,7 @@ def create_robot():
                     'popularity': 0,
                     'rate': 0,
                     'time': new_bot.time
-    }), 200
+                    }), 200
 
 
 @robots.route('/robot/<robotid>', methods=['GET'])
@@ -174,7 +220,7 @@ def search_robot():
         return jsonify({'msg': 'Invalid Credential'}), 401
     type = int(request.args.get('type'))
 
-    #search by robotid
+    # search by robotid
     if type == 1:
         bot = Bot.query.filter_by(id=int(request.args.get('string'))).first()
         user = User.query.filter_by(id=bot.user_id).first()
@@ -182,25 +228,25 @@ def search_robot():
         total_score = db.session.query(func.count(Comment.score)).scalar()
         if bot:
             return jsonify({
-                    'robotid': bot.id,
-                    'robot_name': bot.name,
-                    'base_model': bot.base_model,
-                    'knowledge_base': bot.knowledge_base,
-                    'creator': bot.user_id,
-                    'price': bot.price,
-                    'quota': bot.quota,
-                    'icon': bot.icon,
-                    'rate': average_score,
-                    'popularity': total_score,
-                    'time': bot.time
-                }), 200
+                'robotid': bot.id,
+                'robot_name': bot.name,
+                'base_model': bot.base_model,
+                'knowledge_base': bot.knowledge_base,
+                'creator': bot.user_id,
+                'price': bot.price,
+                'quota': bot.quota,
+                'icon': bot.icon,
+                'rate': average_score,
+                'popularity': total_score,
+                'time': bot.time
+            }), 200
         else:
             return jsonify({"msg": "Robot not found"}), 404
-    #search by keywords
+    # search by keywords
     elif type == 2:
         search_string = request.args.get('string', "")
         robots = Bot.query.filter(Bot.name.like(f"%{search_string}%")).all()
-        response = [] 
+        response = []
         try:
             for bot in robots:
                 average_score = db.session.query(func.avg(Comment.score)).scalar()
@@ -322,7 +368,7 @@ def post_comment(robotid):
                                   bot_id=robotid,
                                   content=request.form['content'],
                                   score=request.form['rate'],
-                                  time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                  time=datetime.now()
                                   )
             db.session.add(new_comment)
             db.session.commit()
@@ -336,12 +382,13 @@ def post_comment(robotid):
         first = has_comment[0]
         first.content = request.form['content']
         first.score = request.form['rate']
-        first.time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        first.time = datetime.now()
         db.session.commit()
         return jsonify({'content': first.content,
                         'score': first.score,
                         'user_name': user.username,
                         'time': first.time}), 200
+
 
 @robots.route('/selfmodified_robot/<uuid>', methods=['GET'])
 def selfmodified_robot(uuid):
@@ -379,6 +426,7 @@ def get_average_rate(bot_id):
     total = Comment.query(func.count(Comment.score)).scalar()
     return average_score, total
 
+
 def calc_timegap(time1, time2):
     if isinstance(time1, str):
         time1 = time.strptime(time1, "%Y-%m-%d %H:%M:%S")
@@ -392,7 +440,7 @@ def calc_timegap(time1, time2):
         time2 = datetime(time2[0], time2[1], time2[2])
     except:
         print(time2)
-    print(time1, time2,(time1-time2).days)
+    print(time1, time2, (time1 - time2).days)
     return (time1 - time2).days
 
 
@@ -408,14 +456,14 @@ def get_robot_trend(duration, type):
         return jsonify({'msg': 'Invalid Credential'}), 401
     bots = Bot.query.all()
     bots_score = [{'bot_id': bot.id, 'rate': 0, 'total': 0, 'time': bot.time} for bot in bots]
-    timegap = 0 #
+    timegap = 0  #
     if duration == 'recent':
         timegap = 3
     elif duration == 'month':
         timegap = 30
     elif duration == 'all':
         timegap = 36500
-        
+
     comments = Comment.query.all()
     for comment in comments:
         time = comment.time
@@ -424,19 +472,19 @@ def get_robot_trend(duration, type):
                 if bot['bot_id'] == comment.bot_id:
                     bot['rate'] += comment.score
                     bot['total'] += 1
-                    
+
     for bots in bots_score:
         bots['rate'] /= bots['total']
-        
-    sorted_bots = [] 
+
+    sorted_bots = []
     if type == 'best-rated':
         sorted_bots = sorted(bots_score, key=lambda x: x['rate'], reverse=True)
     if type == 'most-recent':  # 最新发布的
         sorted_bots = sorted(bots_score, key=lambda x: x['time'], reverse=True)
     if type == 'most-viewed':
         sorted_bots = sorted(bots_score, key=lambda x: x['total'], reverse=True)
-        
-    response = [] 
+
+    response = []
     for bots in sorted_bots:
         bot = Bot.query.filter_by(id=bots['bot_id']).first()
         user = User.query.filter_by(id=bot.user_id).first()
@@ -456,12 +504,5 @@ def get_robot_trend(duration, type):
             'popularity': bots['total'],
             'time': bot.time
         })
-        
+
     return jsonify(response), 200
-    
-            
-        
-        
-    
-   
-    

@@ -151,6 +151,7 @@ class Chat(db.Model):
     history        = db.Column(db.JSON, nullable=False)
     # foreign key
     user           = db.relationship('User', backref=db.backref('chat', lazy=True))
+    bot            = db.relationship('Bot', backref=db.backref('chat', lazy=True))
 
     def __repr__(self):
         return f'<Chat {self.id}>'
