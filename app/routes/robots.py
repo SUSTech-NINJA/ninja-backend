@@ -74,7 +74,7 @@ def create_robot():
                       knowledge_base=request.form.get('knowledge_base'),
                       is_default=False,
                       rate=None,
-                      time=datetime.now()
+                      time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
@@ -113,7 +113,7 @@ def get_robot(robotid):
                 "base_model": robot.base_model,
                 "system_prompt": robot.prompts,
                 "knowledge_base": robot.knowledge_base,
-                "creator": user.username,
+                "creator": user.uuid,
                 "price": robot.price,
                 "quota": robot.quota,
                 "icon": robot.icon,
@@ -148,7 +148,7 @@ def get_robot_comments(robotid):
             "base_model": robot.base_model,
             "system_prompt": robot.prompts,
             "knowledge_base": robot.knowledge_base,
-            "creator": user.name,
+            "creator": user.uuid,
             "price": robot.price,
             "quota": robot.quota,
             "icon": robot.icon,
@@ -322,7 +322,7 @@ def post_comment(robotid):
                                   bot_id=robotid,
                                   content=request.form['content'],
                                   score=request.form['rate'],
-                                  time=datetime.now()
+                                  time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                   )
             db.session.add(new_comment)
             db.session.commit()
@@ -336,7 +336,7 @@ def post_comment(robotid):
         first = has_comment[0]
         first.content = request.form['content']
         first.score = request.form['rate']
-        first.time = datetime.now()
+        first.time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         db.session.commit()
         return jsonify({'content': first.content,
                         'score': first.score,
@@ -448,13 +448,13 @@ def get_robot_trend(duration, type):
             'base_model': bot.base_model,
             'system_prompt': bot.prompts,
             'knowledge_base': bot.knowledge_base,
-            'creator': user.username,
+            'creator': user.uuid,
             'price': bot.price,
             'quota': bot.quota,
             'icon': bot.icon,
             'rate': bots['rate'],
             'popularity': bots['total'],
-            'time': bot.time.strftime("%Y-%m-%d %H:%M:%S")
+            'time': bot.time
         })
         
     return jsonify(response), 200
