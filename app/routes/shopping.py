@@ -28,6 +28,7 @@ def buy_package():
     db.session.commit()
     return jsonify({'result': user.current}), 200
 
+
 @shopping.route('/reward/<uuid>', methods=['POST'])
 def rewarding(uuid):
     current = request.form['current']

@@ -12,34 +12,6 @@ import uuid
 
 user = Blueprint('user', __name__)
 
-def send_email(to_email: str, body: str, subject: str) -> None:
-    """
-    发送一封固定主题的测试邮件到指定的QQ邮箱。
-
-    参数:
-        to_email (str): 收件人的QQ邮箱地址。
-        body (str): 邮件的内容。
-        subject (str): 邮件的主题。
-
-    返回:
-        None
-    """
-    sender_email = os.getenv('MAIL_USERNAME')
-    password = os.getenv('MAIL_PASSWORD')
-    smtp_server = ''
-    smtp_port =  ''
-    msg = MIMEText(body, 'plain', 'utf-8')
-    msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = sender_email
-    msg['To'] = to_email
-    try:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, [to_email], msg.as_string())
-        print('邮件发送成功')
-    except smtplib.SMTPException as e:
-        print('邮件发送失败:', e)
-
 
 @user.route('/post', methods=['POST'])
 def post():
@@ -62,7 +34,7 @@ def post():
 
     send_email(
         receiver.email,
-        f"用户 {sender.username} 在您的主页上发布了新的帖子：<br>{content}<br><br>您可以前往您的主页查看详情。)",
+        f"用户 {sender.username} 在您的主页上发布了新的帖子：<br><br>{content}<br><br>您可以前往您的主页查看详情。:)",
         '[NINJA Chat] 您有新的帖子'
     )
 
@@ -100,9 +72,9 @@ def response():
 
 @user.route('/user/search', methods=['GET'])
 def search_user():
-    type = int(request.args.get('type'))
+    type = int(request.form.get('type'))
     if type == 1:
-        uuid = request.args.get('input')
+        uuid = request.form.get('input')
         try:
             user = get_user_by_id(uuid)
             if user is None:
@@ -143,7 +115,7 @@ def get_user_detail(userid):
     user = get_user_by_id(userid)
     token = request.headers.get('Authorization').split()[1]
     token_user = get_user(token)
-    if user is None or not token_user.admin:
+    if user is None:
         return jsonify({'msg': 'User not found'}), 404
 
     UserInfo = {
@@ -174,7 +146,7 @@ def get_user_detail(userid):
         })
     PostInfo = []
     Post = user.posts
-    for id, post in enumerate(Post):
+    for _, post in enumerate(Post):
         PostInfo.append({
             'postid': post['postid'],
             'userid': post['sender'],
