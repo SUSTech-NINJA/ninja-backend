@@ -30,11 +30,8 @@ def buy_package():
 
 @shopping.route('reward/<uuid>', methods=['POST'])
 def rewarding(uuid):
-    token = request.headers.get('Authorization').split()[1]
-    user = get_user(token)
-    if user is None:
-        return jsonify({'msg': 'Invalid Credential'}), 401
     current = request.form['current']
-    user.current = user.current + current
+    user = User.query.filter_by(uuid=uuid).first()
+    user.current = user.current + int(current)
     db.session.commit()
     return jsonify({'msg': 'Success'}), 200
