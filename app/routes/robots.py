@@ -4,7 +4,7 @@ from flask import request, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from app.models import db, Bot, User, Comment
 from app.routes.auth import get_user
-from sqlalchemy import create_engine, func
+from sqlalchemy import func
 
 robots = Blueprint('robots', __name__)
 headers = {
@@ -132,7 +132,7 @@ def get_robot_comments(robotid):
     robot = Bot.query.filter_by(id=robotid).first()
     user = User.query.filter_by(id=robot.user_id).first()
     average_score = Comment.query(func.avg(Comment.score)).scalar()
-    total_score = Comment.query(func.sum(Comment.score)).scalar()
+    total_score = Comment.query(func.count(Comment.score)).scalar()
     comments = Comment.query.filter_by(bot_id=robotid).all()
     comment_list = [
         {
@@ -179,7 +179,7 @@ def search_robot():
         bot = Bot.query.filter_by(id=int(request.args.get('string'))).first()
         user = User.query.filter_by(id=bot.user_id).first()
         average_score = db.session.query(func.avg(Comment.score)).scalar()
-        total_score = db.session.query(func.sum(Comment.score)).scalar()
+        total_score = db.session.query(func.count(Comment.score)).scalar()
         if bot:
             return jsonify({
                     'robotid': bot.id,
@@ -204,7 +204,7 @@ def search_robot():
         try:
             for bot in robots:
                 average_score = db.session.query(func.avg(Comment.score)).scalar()
-                total_score = db.session.query(func.sum(Comment.score)).scalar()
+                total_score = db.session.query(func.count(Comment.score)).scalar()
                 response.append({
                     'robotid': bot.id,
                     'robot_name': bot.name,

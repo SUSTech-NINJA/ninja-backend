@@ -96,8 +96,6 @@ def update_robot(base_model_id):
     except KeyError:
         return jsonify({'msg': 'Missing required fields'}), 400
 
-    total_score = db.session.query(func.sum(Comment.score)).scalar()
-
     db.session.commit()
     return jsonify({'robotid': bot.id,
                     'robot_name': bot.name,
@@ -108,7 +106,7 @@ def update_robot(base_model_id):
                     'knowledge_base': bot.knowledge_base,
                     'price': bot.price,
                     'quota': bot.quota,
-                    'popularity': total_score,
+                    'popularity': bot.popularity,
                     'rate': bot.rate,
                     'time': bot.time
                     })
