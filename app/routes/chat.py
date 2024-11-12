@@ -48,6 +48,85 @@ def create_chat():
     return jsonify({'chatid': new_chat.id}), 200
 
 
+def send_chat(chatid, use_model='', should_use_model=False):
+    token = request.headers.get('Authorization').split()[1]
+
+    user = get_user(token)
+    if user is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    if re.match(r'[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}', chatid) is None:
+        return jsonify({'msg': 'Invalid Chat ID'}), 404
+
+    chat_info = Chat.query.filter_by(id=chatid).first()
+    if chat_info is None:
+        return jsonify({'msg': 'Chat not found'}), 404
+
+    if chat_info.user_id != user.id:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    message = request.get_json().get('message')
+    files = request.get_json().get('files')
+    mimetypes = request.get_json().get('mimetypes')
+    single_round = request.get_json().get('single-round')
+
+    files = json.loads(files)
+    mimetypes = json.loads(mimetypes)
+    assert len(files) == len(mimetypes)
+
+    input_files = []
+    for i in range(len(files)):
+        if mimetypes[i].startswith('image'):
+            input_files.append({
+                "type": "image_url",
+                "image_url": { "url": files[i] }
+            })
+        else:
+            input_files.append({
+                "type": "text",
+                "text": str(base64.b64decode(files[i].replace('data:text/plain;base64,', '')))[2:-1]
+            })
+
+    if len(input_files) == 0:
+        user_message = [{"role": "user", "content": message}]
+    else:
+        user_message = [{
+            "role": "user",
+            "content": [{"type": "text", "text": message}] + input_files
+        }]
+
+    chat_info.history = chat_info.history + user_message
+    db.session.commit()
+
+    response = OpenAI(
+        api_key=os.getenv('AIPROXY_API_KEY'),
+        base_url="https://api.aiproxy.io/v1"
+    ).chat.completions.create(
+        messages=(chat_info.history[:1] + user_message) if single_round else chat_info.history,
+        model=chat_info.settings['model'] if should_use_model is False else use_model,
+        stream=True,
+        timeout=20
+    )
+
+    def generate():
+        message = []
+        for trunk in response:
+            if trunk.choices[0].finish_reason != "stop":
+                yield trunk.choices[0].delta.content
+                message.append(trunk.choices[0].delta.content)
+            else:
+                chat_info.history = chat_info.history + [{
+                    "role": "assistant",
+                    "content": ''.join(message)
+                }]
+                db.session.commit()
+
+    return Response(stream_with_context(generate()), mimetype="text/plain")
+
+@chat.route('/chat/<chatid>/use/<model>',methods=['POST'])
+def chat_use_model(chatid, model):
+    return send_chat(chatid, model, True)
+
 @chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
 def chat_stream(chatid):
     """
@@ -78,79 +157,7 @@ def chat_stream(chatid):
 
     # Get Response From GPT
     elif request.method == 'POST':
-        token = request.headers.get('Authorization').split()[1]
-
-        user = get_user(token)
-        if user is None:
-            return jsonify({'msg': 'Invalid Credential'}), 401
-
-        if re.match(r'[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}', chatid) is None:
-            return jsonify({'msg': 'Invalid Chat ID'}), 404
-
-        chat_info = Chat.query.filter_by(id=chatid).first()
-        if chat_info is None:
-            return jsonify({'msg': 'Chat not found'}), 404
-
-        if chat_info.user_id != user.id:
-            return jsonify({'msg': 'Invalid Credential'}), 401
-
-        message = request.get_json().get('message')
-        files = request.get_json().get('files')
-        mimetypes = request.get_json().get('mimetypes')
-        single_round = request.get_json().get('single-round')
-
-        files = json.loads(files)
-        mimetypes = json.loads(mimetypes)
-        assert len(files) == len(mimetypes)
-
-        input_files = []
-        for i in range(len(files)):
-            if mimetypes[i].startswith('image'):
-                input_files.append({ 
-                    "type": "image_url",
-                    "image_url": { "url": files[i] }
-                })
-            else:
-                input_files.append({
-                    "type": "text",
-                    "text": str(base64.b64decode(files[i].replace('data:text/plain;base64,', '')))[2:-1]
-                })
-
-        if len(input_files) == 0:
-            user_message = [{"role": "user", "content": message}]
-        else:
-            user_message = [{
-                "role": "user",
-                "content": [{"type": "text", "text": message}] + input_files
-            }]
-
-        chat_info.history = chat_info.history + user_message
-        db.session.commit()
-
-        response = OpenAI(
-            api_key=os.getenv('AIPROXY_API_KEY'),
-            base_url="https://api.aiproxy.io/v1"
-        ).chat.completions.create(
-            messages=(chat_info.history[:1] + user_message) if single_round else chat_info.history,
-            model=chat_info.settings['model'],
-            stream=True,
-            timeout=20
-        )
-
-        def generate():
-            message = []
-            for trunk in response:
-                if trunk.choices[0].finish_reason != "stop":
-                    yield trunk.choices[0].delta.content
-                    message.append(trunk.choices[0].delta.content)
-                else:
-                    chat_info.history = chat_info.history + [{
-                        "role": "assistant",
-                        "content": ''.join(message)
-                    }]
-                    db.session.commit()
-
-        return Response(stream_with_context(generate()), mimetype="text/plain")
+        return send_chat(chatid)
 
     # Delete Chat
     elif request.method == 'DELETE':

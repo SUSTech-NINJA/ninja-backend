@@ -1,3 +1,5 @@
+import math
+
 from flask import Blueprint, request, jsonify
 from app.models import db, User, Bill
 from app.routes.auth import get_user
@@ -22,7 +24,7 @@ def buy_package():
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
     user.current = request.form['result']
-    margin = int(origin_current) - int(user.current)
+    margin = int(origin_current) - round(float(user.current))
     bill = Bill(user_id=user.id, bill=margin)
     db.session.add(bill)
     db.session.commit()
