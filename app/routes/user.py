@@ -1,9 +1,12 @@
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
 from flask import Blueprint, request, jsonify
 from app.models import db, User, Bot  # 确保正确导入你的 User 和 Bot 模型
 from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
-from send_email import send_email
 import uuid
 
 
@@ -28,9 +31,13 @@ def post():
         "content": content,
         "responses": [],
     })
-    send_email(receiver.email, 
-               f"用户名为 {sender.username} 的用户在您的主页上发布了新的帖子：\n{content}', 您可以前往您的主页查看详情。)",
-                '您有新的帖子')
+
+    send_email(
+        receiver.email,
+        f"用户 {sender.username} 在您的主页上发布了新的帖子：<br>{content}<br><br>您可以前往您的主页查看详情。)",
+        '[NINJA Chat] 您有新的帖子'
+    )
+
     db.session.commit()
     return jsonify({'message': 'Post successfully'}), 200
 
@@ -332,3 +339,30 @@ def get_average_rate_user(user):
     for i in rate:
         sum += i
     return sum / len(rate)
+
+def send_email(to_email: str, body: str, subject: str) -> None:
+    """
+    发送一封固定主题的测试邮件到指定的QQ邮箱。
+
+    参数:
+        to_email (str): 收件人的QQ邮箱地址。
+        body (str): 邮件的内容。
+        subject (str): 邮件的主题。
+
+    返回:
+        None
+    """
+    sender_email = os.getenv('MAIL_USERNAME')
+    password = os.getenv('MAIL_PASSWORD')
+    smtp_server = 'smtphz.qiye.163.com'
+    smtp_port = '465'
+    msg = MIMEText(body, 'html', 'utf-8')
+    msg['Subject'] = Header(subject, 'utf-8')
+    msg['From'] = f'NINJA Chat <{sender_email}>'
+    msg['To'] = to_email
+    try:
+        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, [to_email], msg.as_string())
+    except smtplib.SMTPException as e:
+        print(f'邮件发送失败: {e}')

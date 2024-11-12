@@ -13,8 +13,10 @@ This is the backend for the NINJA project.
 First, add a secret key and api key to the `.env` file
 
 ```
-echo "SECRET=your_secret_key" > .env
-echo "AIPROXY_API_KEY=your_api_key" >> .env
+echo "SECRET=your_secret_key\n \
+AIPROXY_API_KEY=your_api_key\n \
+MAIL_USERNAME=your_email\n     \
+MAIL_PASSWORD=your_password" > .env
 ```
 
 Then, start a virtual environment and run the server
