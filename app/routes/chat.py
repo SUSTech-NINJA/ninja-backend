@@ -9,6 +9,7 @@ from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat, Bot
+from app.routes.shopping import rewarding
 
 chat = Blueprint('chat', __name__)
 
@@ -106,6 +107,9 @@ def send_chat(chatid, use_model='', should_use_model=False):
             "role": "user",
             "content": [{"type": "text", "text": message}] + input_files
         }]
+
+    # reward user
+    rewarding(cur_model.user_id)
 
     chat_info.history = chat_info.history + user_message
     db.session.commit()

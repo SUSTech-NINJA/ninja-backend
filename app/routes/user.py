@@ -152,6 +152,7 @@ def get_user_detail(userid):
             'icon': bot.icon,
             'rate': get_average_rate_model(bot),
             'popularity': 0 if bot.rate is None else len(bot.rate),
+            'is_default': bot.is_default,
         })
     PostInfo = []
     Post = user.posts
