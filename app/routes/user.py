@@ -49,8 +49,14 @@ def response():
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
+    print('data')
+    print(request.form)
+    print('content:'+str(request.args.get('content')))
+
     content = request.form.get('content')
     postid = request.form.get('postid')
+    print('uuid:'+str(request.form.get('uuid')))
+
     receiver = get_user_by_id(request.form.get('uuid'))
 
     response = jsonify({
@@ -72,9 +78,9 @@ def response():
 
 @user.route('/user/search', methods=['GET'])
 def search_user():
-    type = int(request.form.get('type'))
+    type = int(request.args.get('type'))
     if type == 1:
-        uuid = request.form.get('input')
+        uuid = request.args.get('input')
         try:
             user = get_user_by_id(uuid)
             if user is None:
@@ -83,10 +89,10 @@ def search_user():
             return jsonify([{
                 'uuid': str(user.id), 
                 'username': user.username,
-                'icon' : user.icon,
-                'intro' : user.intro,
+                'icon': user.icon,
+                'intro': user.intro,
                 'rate': get_average_rate_user(user),
-                'email' : user.email,
+                'email': user.email,
             }]), 200
         except Exception as e:
             return jsonify({'msg': 'Invalid uuid.'}), 404
@@ -102,10 +108,10 @@ def search_user():
             result.append({
                 'uuid': str(user.id), 
                 'username': user.username,
-                'icon' : user.icon,
-                'intro' : user.intro,
+                'icon': user.icon,
+                'intro': user.intro,
                 'rate': get_average_rate_user(user),
-                'email' : user.email,
+                'email': user.email,
             })
         return jsonify(result), 200
 

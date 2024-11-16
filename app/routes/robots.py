@@ -31,44 +31,6 @@ def robot_list():
         .order_by(func.count(Chat.id).desc())
         .all()
     )
-    if len(bots) == 0:
-        bots = (
-            db.session.query(Bot, func.count(Comment.id).label('chat_count'))
-            .join(Comment, isouter=True)
-            .group_by(Bot.id)
-            .order_by(func.count(Comment.id).desc())
-            .all()
-        )
-        if len(bots) == 0:
-            bots = Bot.query.limit(3)
-            bots_list = []
-            try:
-                for bot in bots:
-                    try:
-                        average_score = 0 if Comment.query(func.avg(Comment.score)) is None \
-                            else Comment.query(func.avg(Comment.score)).scalar()
-                        total = 0 if Comment.query(func.count(Comment.score)) is None \
-                            else Comment.query(func.count(Comment.score)).scalar()
-                    except:
-                        average_score = 0
-                        total = 0
-                    bots_list.append({
-                        'robotid': bot.id,
-                        'robot_name': bot.name,
-                        'base_model': bot.base_model,
-                        'system_prompt': bot.prompts,
-                        'knowledge_base': bot.knowledge_base,
-                        'creator': bot.user_id,
-                        'quota': bot.quota,
-                        'price': bot.price,
-                        'icon': bot.icon,
-                        'rate': average_score,
-                        'popularity': total,
-                        'time': bot.time
-                    })
-                return jsonify(bots_list), 200
-            except KeyError:
-                return jsonify({'msg': 'Missing required fields'}), 400
 
     bots_list = []
     try:
