@@ -1,5 +1,3 @@
-import math
-
 from flask import Blueprint, request, jsonify
 from app.models import db, User, Bill
 from app.routes.auth import get_user
@@ -31,10 +29,12 @@ def buy_package():
     return jsonify({'result': user.current}), 200
 
 
-@shopping.route('/reward/<uuid>', methods=['POST'])
-def rewarding(uuid):
-    current = request.form['current']
-    user = User.query.filter_by(id=uuid).first()
-    user.current = user.current + int(current)
-    db.session.commit()
-    return jsonify({'msg': 'Success'}), 200
+def rewarding(uuid: str):
+    try:
+        print("[INFO] Reward success: ", uuid)
+        current = request.form['current']
+        user = User.query.filter_by(id=uuid).first()
+        user.current = user.current + int(current)
+        db.session.commit()
+    except:
+        pass

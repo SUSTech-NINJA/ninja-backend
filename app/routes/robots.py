@@ -305,7 +305,7 @@ def delete_robot(robotid):
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
-    robots_info = Bot.query.filter_by(id=robotid)
+    robots_info = Bot.query.filter_by(id=robotid).first()
 
     if robots_info is None:
         return jsonify({'msg': 'Robot not found'}), 404
