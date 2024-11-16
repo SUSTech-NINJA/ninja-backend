@@ -78,7 +78,7 @@ def send_chat(chatid, use_model='', should_use_model=False):
     message = request.get_json().get('message')
     files = request.get_json().get('files')
     mimetypes = request.get_json().get('mimetypes')
-    single_round = request.get_json().get('single-round')
+    single_round = request.get_json().get('single-round').lower().startswith('true')
     cur_model_name = request.get_json().get('model')
     cur_model = Bot.query.filter_by(name=cur_model_name).first()
     chat_info.history[0]['content'] = cur_model.prompts + get_knowledge_base(cur_model.knowledge_base)
