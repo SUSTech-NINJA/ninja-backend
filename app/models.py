@@ -119,6 +119,8 @@ class Bot(db.Model):
     is_default     = db.Column(db.Boolean, nullable=False, default=False)
     rate           = db.Column(JSON, nullable=True)
 
+    chats = db.relationship("Chat",back_populates='bot', cascade="all, delete-orphan")
+
     def __repr__(self):
         return f'<Bot {self.base_model}>'
 
@@ -151,7 +153,7 @@ class Chat(db.Model):
     history        = db.Column(db.JSON, nullable=False)
     # foreign key
     user           = db.relationship('User', backref=db.backref('chat', lazy=True))
-    bot            = db.relationship('Bot', backref=db.backref('chat', lazy=True))
+    bot            = db.relationship('Bot',  back_populates='chats')
 
     def __repr__(self):
         return f'<Chat {self.id}>'
