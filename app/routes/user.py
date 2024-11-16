@@ -288,9 +288,10 @@ def get_history(userid):
         if query['sender'] == str(opponent.id):
             for content in query['content']:
                 history.append({
-                    'sender': content['sender'],
+                    'sender': get_user_by_id(content['sender']).username,
                     'icon': get_user_by_id(content['sender']).icon,
                     'content': content['content'],
+                    'timestamp': content['timestamp']
                 })
     return jsonify(history), 200
 
