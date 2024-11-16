@@ -218,9 +218,9 @@ def send_message():
     flag1 = True
     send_email(receiver.email, f"用户名为 {sender.username} 的用户给您发送了一条消息：\n{content}", '您有新的消息')
     for query in sender.queries:
-        if query.sender == receiver.id:
+        if query['sender'] == receiver.id:
             flag1 = False
-            query.content.append({
+            query['content'].append({
                 'sender': str(sender.id),
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -243,9 +243,9 @@ def send_message():
 
     flag2 = True
     for query in receiver.queries:
-        if query.sender == sender.id:
+        if query['sender'] == sender.id:
             flag2 = False
-            query.content.append({
+            query['content'].append({
                 'sender': str(sender.id), 
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
