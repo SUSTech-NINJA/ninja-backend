@@ -152,6 +152,7 @@ def get_user_detail(userid):
             'icon': bot.icon,
             'rate': get_average_rate_model(bot),
             'popularity': 0 if bot.rate is None else len(bot.rate),
+            'is_default': bot.is_default,
         })
     PostInfo = []
     Post = user.posts
@@ -288,9 +289,10 @@ def get_history(userid):
         if query['sender'] == str(opponent.id):
             for content in query['content']:
                 history.append({
-                    'sender': content['sender'],
+                    'sender': get_user_by_id(content['sender']).username,
                     'icon': get_user_by_id(content['sender']).icon,
                     'content': content['content'],
+                    'timestamp': content['timestamp']
                 })
     return jsonify(history), 200
 
