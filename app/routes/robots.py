@@ -440,7 +440,10 @@ def get_robot_trend(duration, type):
                     bot['total'] += 1
 
     for bots in bots_score:
-        bots['rate'] /= bots['total']
+        if bots['total'] == 0:
+            bots['rate'] = 0
+        else:
+            bots['rate'] /= bots['total']
 
     sorted_bots = []
     if type == 'best-rated':
@@ -462,7 +465,7 @@ def get_robot_trend(duration, type):
             'base_model': bot.base_model,
             'system_prompt': bot.prompts,
             'knowledge_base': bot.knowledge_base,
-            'creator': user.id,
+            'creator': user.username,
             'price': bot.price,
             'quota': bot.quota,
             'icon': bot.icon,
