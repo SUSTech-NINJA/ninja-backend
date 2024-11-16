@@ -26,7 +26,7 @@ def robot_list():
 
     bots = (
         db.session.query(Bot, func.count(Chat.id).label('chat_count'))
-        .join(Chat)
+        .join(Chat, isouter=True)
         .group_by(Bot.id)
         .order_by(func.count(Chat.id).desc())
         .all()
@@ -34,10 +34,10 @@ def robot_list():
     if len(bots) == 0:
         bots = (
             db.session.query(Bot, func.count(Comment.id).label('chat_count'))
-            .join(Comment)
+            .join(Comment, isouter=True)
             .group_by(Bot.id)
             .order_by(func.count(Comment.id).desc())
-            .limit(3)
+            .all()
         )
         if len(bots) == 0:
             bots = Bot.query.limit(3)
