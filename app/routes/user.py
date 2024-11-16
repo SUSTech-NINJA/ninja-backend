@@ -50,13 +50,8 @@ def response():
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
-    print('data')
-    print(request.form)
-    print('content:' + str(request.args.get('content')))
-
     content = request.form.get('content')
     postid = request.form.get('postid')
-    print('uuid:' + str(request.form.get('uuid')))
 
     receiver = get_user_by_id(request.form.get('uuid'))
 
@@ -70,7 +65,14 @@ def response():
 
     for post in receiver.posts:
         if post['postid'] == postid:
-            post['responses'].append(response)
+            post['responses'].append({
+                "postid": postid,
+                "sender": str(sender.id),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "icon": sender.icon,
+                "content": content
+            })
+            flag_modified(receiver, 'posts')
             db.session.commit()
             return jsonify({'message': 'Response successfully'}), 200
 
@@ -210,13 +212,6 @@ def conversation():
 def send_message():
     token = request.headers.get('Authorization').split()[1]
     sender = get_user(token)
-    if sender is None:
-        return jsonify({'msg': 'Invalid Credential'}), 401
-
-    print(str(sender.id))
-    print(str(request.form.get('uuid')))
-    content = request.form.get('content')
-    receiver = get_user_by_id(request.form.get('uuid'))
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
