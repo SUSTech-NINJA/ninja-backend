@@ -97,6 +97,14 @@ def update_robot(base_model_id):
         return jsonify({'msg': 'Missing required fields'}), 400
 
     db.session.commit()
+
+    try:
+        average_score = Comment.query(func.avg(Comment.score)).scalar()
+        total = Comment.query(func.count(Comment.score)).scalar()
+    except:
+        average_score = 0
+        total = 0
+
     return jsonify({'robotid': bot.id,
                     'robot_name': bot.name,
                     'base_model': bot.base_model,
@@ -106,8 +114,8 @@ def update_robot(base_model_id):
                     'knowledge_base': bot.knowledge_base,
                     'price': bot.price,
                     'quota': bot.quota,
-                    'popularity': bot.popularity,
-                    'rate': bot.rate,
+                    'popularity': total,
+                    'rate': average_score,
                     'time': bot.time
                     })
 

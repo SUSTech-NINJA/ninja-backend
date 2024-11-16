@@ -55,7 +55,8 @@ def robot_list():
                 'icon': bot.icon,
                 'rate': average_score,
                 'popularity': total,
-                'time': bot.time
+                'time': bot.time,
+                'is_default': bot.is_default
             })
         return jsonify(bots_list), 200
     except KeyError:
@@ -99,7 +100,8 @@ def create_robot():
                     'quota': new_bot.quota,
                     'popularity': 0,
                     'rate': 0,
-                    'time': new_bot.time
+                    'time': new_bot.time,
+                    'is_default': new_bot.is_default
                     }), 200
 
 
@@ -127,7 +129,8 @@ def get_robot(robotid):
                 "icon": robot.icon,
                 "rate": average_score,
                 "popularity": total,
-                'time': robot.time
+                'time': robot.time,
+                'is_default': robot.is_default
             }
         }
         return jsonify(response), 200
@@ -290,7 +293,8 @@ def update_robot(robotid):
         'quota': bot.quota,
         'popularity': total,
         'rate': average_score,
-        'time': bot.time
+        'time': bot.time,
+        'is_default': bot.is_default
     }), 200
 
 
