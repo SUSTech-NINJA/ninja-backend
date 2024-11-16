@@ -8,6 +8,7 @@ from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
 import uuid
+import threading
 
 
 user = Blueprint('user', __name__)
@@ -296,22 +297,16 @@ def get_history(userid):
 
 @user.route('/update/<userid>', methods=['POST'])
 def update(userid):
-    token = request.headers.get('Authorization').split()[1]
-    token_user = get_user(token)
-
-    user = token_user.admin and get_user_by_id(userid) or token_user
+    user = get_user_by_id(userid)
     if user is None:
         return jsonify({'msg': 'User not found'}), 404
-
     user.username = request.form.get('username') is not None and request.form.get('username') or user.username
-    user.email = request.form.get('email') is not None and request.form.get('email') or user.email
+    user.icon = request.form.get('email') is not None and request.form.get('email') or user.email
     user.intro = request.form.get('intro') is not None and request.form.get('intro') or user.intro
-    user.icon = request.form.get('icon') is not None and request.form.get('icon') or user.icon
+    user.email = request.form.get('email') is not None and request.form.get('email') or user.email
     db.session.commit()
     return jsonify({'msg': 'Update successfully'}), 200
 
-
-# Utility Functions
 def get_user_by_id(uuid):
     return User.query.filter_by(id=uuid).first()
 
@@ -348,27 +343,39 @@ def get_average_rate_user(user):
 
 def send_email(to_email: str, body: str, subject: str) -> None:
     """
-    发送一封固定主题的测试邮件到指定的QQ邮箱。
+    发送一封固定主题的测试邮件到指定的邮箱。
 
     参数:
-        to_email (str): 收件人的QQ邮箱地址。
+        to_email (str): 收件人的邮箱地址。
         body (str): 邮件的内容。
         subject (str): 邮件的主题。
 
     返回:
         None
     """
-    sender_email = os.getenv('MAIL_USERNAME')
-    password = os.getenv('MAIL_PASSWORD')
-    smtp_server = 'smtphz.qiye.163.com'
-    smtp_port = '465'
-    msg = MIMEText(body, 'html', 'utf-8')
-    msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = f'NINJA Chat <{sender_email}>'
-    msg['To'] = to_email
-    try:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
-            server.login(sender_email, password)
-            server.sendmail(sender_email, [to_email], msg.as_string())
-    except smtplib.SMTPException as e:
-        print(f'邮件发送失败: {e}')
+    def email_thread():
+        sender_email = os.getenv('MAIL_USERNAME')
+        password = os.getenv('MAIL_PASSWORD')
+        smtp_server = 'smtphz.qiye.163.com'
+        smtp_port = 465  # 
+
+        if not sender_email or not password:
+            print('邮件发送失败: 缺少环境变量 MAIL_USERNAME 或 MAIL_PASSWORD')
+            return
+
+        msg = MIMEText(body, 'html', 'utf-8')
+        msg['Subject'] = Header(subject, 'utf-8')
+        msg['From'] = f'NINJA Chat <{sender_email}>'
+        msg['To'] = to_email
+
+        try:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+                server.login(sender_email, password)
+                server.sendmail(sender_email, [to_email], msg.as_string())
+            print('邮件发送成功')
+        except smtplib.SMTPException as e:
+            print(f'邮件发送失败: {e}')
+
+    # 创建并启动线程
+    thread = threading.Thread(target=email_thread)
+    thread.start()
