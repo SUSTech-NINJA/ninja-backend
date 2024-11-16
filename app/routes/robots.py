@@ -309,8 +309,12 @@ def update_robot(robotid):
 
     db.session.commit()
 
-    average_score = Comment.query(func.avg(Comment.score)).scalar()
-    total = Comment.query(func.count(Comment.score)).scalar()
+    try:
+        average_score = Comment.query(func.avg(Comment.score)).scalar()
+        total = Comment.query(func.count(Comment.score)).scalar()
+    except:
+        average_score = 0
+        total = 0
 
     return jsonify({
         'robotid': bot.id,

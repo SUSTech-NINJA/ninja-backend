@@ -3,11 +3,12 @@ import os
 import re
 import json
 import base64
+import traceback
+
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from openai import OpenAI
 from app.routes.auth import get_user
 from app.models import db, Chat
-
 
 chat = Blueprint('chat', __name__)
 
@@ -17,12 +18,18 @@ headers = {
     'X-Accel-Buffering': 'no',
 }
 
+
 # TODO: Fold Authorization to before_request
+
+def get_knowledge_base(knowledge_base):
+    if knowledge_base == '' or knowledge_base is None:
+        return ''
+    else:
+        return "\n And a knowledge base is given for your reference: \n" + knowledge_base
+
+
 @chat.route('/chat/new', methods=['POST'])
 def create_chat():
-    """
-    TBD
-    """
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
 
@@ -33,13 +40,15 @@ def create_chat():
         new_chat = Chat(
             user_id=user.id,
             title="New Conversation",
-            history=[{"role": "system", "content": request.json['prompts']}],
+            history=[{"role": "system",
+                      "content": request.json['prompts'] + get_knowledge_base(request.json['knowledge_base'])}],
             settings={
                 "model": request.json['model']
             },
             robotid=request.json['robotid']
         )
     except KeyError:
+        traceback.print_exc()
         return jsonify({'msg': 'Missing required fields'}), 400
 
     db.session.add(new_chat)
@@ -79,7 +88,7 @@ def send_chat(chatid, use_model='', should_use_model=False):
         if mimetypes[i].startswith('image'):
             input_files.append({
                 "type": "image_url",
-                "image_url": { "url": files[i] }
+                "image_url": {"url": files[i]}
             })
         else:
             input_files.append({
@@ -123,9 +132,11 @@ def send_chat(chatid, use_model='', should_use_model=False):
 
     return Response(stream_with_context(generate()), mimetype="text/plain")
 
-@chat.route('/chat/<chatid>/use/<model>',methods=['POST'])
+
+@chat.route('/chat/<chatid>/use/<model>', methods=['POST'])
 def chat_use_model(chatid, model):
     return send_chat(chatid, model, True)
+
 
 @chat.route('/chat/<chatid>', methods=['GET', 'POST', 'DELETE'])
 def chat_stream(chatid):
