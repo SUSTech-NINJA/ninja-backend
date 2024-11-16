@@ -121,7 +121,7 @@ def get_robot(robotid):
                 "base_model": robot.base_model,
                 "system_prompt": robot.prompts,
                 "knowledge_base": robot.knowledge_base,
-                "creator": user.id,
+                "creator": user.name,
                 "price": robot.price,
                 "quota": robot.quota,
                 "icon": robot.icon,
