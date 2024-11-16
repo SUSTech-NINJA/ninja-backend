@@ -38,12 +38,12 @@ def create_app():
         db.create_all()
 
     # register blueprints
-    app.register_blueprint(auth)
-    app.register_blueprint(admin)
-    app.register_blueprint(chat)
-    app.register_blueprint(robots)
-    app.register_blueprint(shopping)
-    app.register_blueprint(user)
+    app.register_blueprint(auth, url_prefix='/api')
+    app.register_blueprint(admin, url_prefix='/api')
+    app.register_blueprint(chat, url_prefix='/api')
+    app.register_blueprint(robots, url_prefix='/api')
+    app.register_blueprint(shopping, url_prefix='/api')
+    app.register_blueprint(user, url_prefix='/api')
 
     CORS(app, resources={r"/*": {"origins": "*"}})
 
