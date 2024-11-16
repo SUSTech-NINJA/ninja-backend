@@ -114,7 +114,7 @@ class Bot(db.Model):
     quota          = db.Column(db.Integer, nullable=True)
     price          = db.Column(db.Integer, nullable=False)
     prompts        = db.Column(JSON, nullable=True)
-    icon           = db.Column(db.String, nullable=False)
+    icon           = db.Column(db.String, nullable=False, default=base64.b64encode(open('app/assets/bot_avatar.png', 'rb').read()).decode())
     knowledge_base = db.Column(db.String, nullable=True)
     is_default     = db.Column(db.Boolean, nullable=False, default=False)
     rate           = db.Column(JSON, nullable=True)
