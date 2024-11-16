@@ -3,12 +3,13 @@ import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
 from flask import Blueprint, request, jsonify
+from sqlalchemy.orm.attributes import flag_modified
+
 from app.models import db, User, Bot  # 确保正确导入你的 User 和 Bot 模型
 from datetime import datetime
 from app.routes.auth import get_user
 from app.models import User, Bot
 import uuid
-
 
 user = Blueprint('user', __name__)
 
@@ -51,11 +52,11 @@ def response():
 
     print('data')
     print(request.form)
-    print('content:'+str(request.args.get('content')))
+    print('content:' + str(request.args.get('content')))
 
     content = request.form.get('content')
     postid = request.form.get('postid')
-    print('uuid:'+str(request.form.get('uuid')))
+    print('uuid:' + str(request.form.get('uuid')))
 
     receiver = get_user_by_id(request.form.get('uuid'))
 
@@ -87,7 +88,7 @@ def search_user():
                 return jsonify({'msg': 'User not found'}), 404
 
             return jsonify([{
-                'uuid': str(user.id), 
+                'uuid': str(user.id),
                 'username': user.username,
                 'icon': user.icon,
                 'intro': user.intro,
@@ -106,7 +107,7 @@ def search_user():
         result = []
         for user in users:
             result.append({
-                'uuid': str(user.id), 
+                'uuid': str(user.id),
                 'username': user.username,
                 'icon': user.icon,
                 'intro': user.intro,
@@ -160,7 +161,7 @@ def get_user_detail(userid):
             'time': post['timestamp'],
             'content': post['content'],
             'responses': post['responses'],
-            'rate': 0, 
+            'rate': 0,
             'type': 'post',
             'icon': get_user_by_id(post['sender']).icon
         })
@@ -188,7 +189,7 @@ def evaluate_user(uuid):
     return jsonify({'msg': 'Rate successfully'}), 200
 
 
-@user.route('/conversation', methods=['GET']) # 获取私聊列表
+@user.route('/conversation', methods=['GET'])  # 获取私聊列表
 def conversation():
     token = request.headers.get('Authorization').split()[1]
     user = get_user(token)
@@ -200,7 +201,7 @@ def conversation():
         conversation_list.append({
             'uuid': query['sender'],
             'icon': get_user_by_id(query['sender']).icon,
-            'username': get_user_by_id(query['sender']).username,
+            'username': get_user_by_id(query['sender']).username
         })
     return jsonify(conversation_list), 200
 
@@ -212,18 +213,26 @@ def send_message():
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
+    print(str(sender.id))
+    print(str(request.form.get('uuid')))
     content = request.form.get('content')
     receiver = get_user_by_id(request.form.get('uuid'))
+    if sender is None:
+        return jsonify({'msg': 'Invalid Credential'}), 401
+
+    content = str(request.form.get('content'))
+    receiver = User.query.filter_by(id=request.form.get('uuid')).first()
     flag1 = True
     send_email(receiver.email, f"用户名为 {sender.username} 的用户给您发送了一条消息：\n{content}", '您有新的消息')
     for query in sender.queries:
-        if query.sender == receiver.id:
+        if query['sender'] == str(receiver.id):
             flag1 = False
-            query.content.append({
+            query['content'].append({
                 'sender': str(sender.id),
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
+            flag_modified(sender, 'queries')
             db.session.commit()
 
     if flag1:
@@ -231,29 +240,28 @@ def send_message():
             'sender': str(receiver.id),
             'content': [
                 {
-                    'sender': str(sender.id), 
+                    'sender': str(sender.id),
                     'content': content,
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                }
-            ]
+                }]
         })
-
         db.session.commit()
 
     flag2 = True
     for query in receiver.queries:
-        if query.sender == sender.id:
+        if query['sender'] == str(sender.id):
             flag2 = False
-            query.content.append({
-                'sender': str(sender.id), 
+            query['content'].append({
+                'sender': str(sender.id),
                 'content': content,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
+            flag_modified(receiver, 'queries')
             db.session.commit()
 
     if flag2:
         receiver.queries.append({
-            'sender': str(sender.id), 
+            'sender': str(sender.id),
             'content': [
                 {
                     'sender': str(sender.id),
@@ -262,10 +270,8 @@ def send_message():
                 }
             ]
         })
-        db.session.commit()
 
-    print(get_user_by_id(request.form.get('uuid')).queries)
-    print(get_user(token).queries)
+        db.session.commit()
 
     return jsonify({'msg': 'Send successfully'}), 200
 
@@ -315,14 +321,18 @@ def update(userid):
 def get_user_by_id(uuid):
     return User.query.filter_by(id=uuid).first()
 
+
 def get_user_by_username(username):
     return User.query.filter_by(username=username).first()
 
-def get_user_by_username_deblur(username): # 模糊查询 可能会查询到 多个 返回数组
+
+def get_user_by_username_deblur(username):  # 模糊查询 可能会查询到 多个 返回数组
     return User.query.filter(User.username.like('%' + username + '%')).all()
 
-def get_robot_by_uuid(uuid): # 返回所有该用户创建的机器人
+
+def get_robot_by_uuid(uuid):  # 返回所有该用户创建的机器人
     return Bot.query.filter_by(user_id=uuid).all()
+
 
 def get_average_rate_model(model):
     rate = model.rate
@@ -335,6 +345,7 @@ def get_average_rate_model(model):
         sum += i
     return sum / len(rate)
 
+
 def get_average_rate_user(user):
     rate = user.rate
     if rate is None:
@@ -345,6 +356,7 @@ def get_average_rate_user(user):
     for i in rate:
         sum += i
     return sum / len(rate)
+
 
 def send_email(to_email: str, body: str, subject: str) -> None:
     """
