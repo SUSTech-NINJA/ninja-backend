@@ -35,8 +35,12 @@ def post():
 
     send_email(
         receiver.email,
-        f"用户 {sender.username} 在您的主页上发布了新的帖子：<br><br>{content}<br><br>您可以前往您的主页查看详情。:)",
-        '[NINJA Chat] 您有新的帖子'
+        f"""
+用户 <a href=\"https://ninjachat.benx.dev/\">{sender.username}</a> 在您的主页上发布了新的帖子：<br><br>
+{content} <br><br>
+您可以前往<a href=\"https://ninjachat.benx.dev/\">主页</a>查看详情。:)
+        """,
+        "[NINJA Chat] 您有新的帖子"
     )
 
     db.session.commit()
@@ -182,7 +186,13 @@ def evaluate_user(uuid):
     sender = get_user(token)
     if sender is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
-    send_email(user.email, f"用户名为 {sender.username} 的用户对您进行了评价，评分为 {rate} 分。", '您有新的评价')
+    send_email(
+        user.email,
+        f"""
+    用户 {sender.username} 对您进行了评价，评分为 {rate} 分。
+        """,
+        "[NINJA Chat] 您有新的评价"
+    )
     try:
         user.rate = user.rate + [int(rate)]
     except:
@@ -219,7 +229,13 @@ def send_message():
     content = str(request.form.get('content'))
     receiver = User.query.filter_by(id=request.form.get('uuid')).first()
     flag1 = True
-    send_email(receiver.email, f"用户名为 {sender.username} 的用户给您发送了一条消息：\n{content}", '您有新的消息')
+    send_email(
+        receiver.email,
+        f"""
+    用户 {sender.username} 给您发送了一条消息：<br><br>{content}
+        """,
+        "[NINJA Chat] 您有新的消息"
+    )
     for query in sender.queries:
         if query['sender'] == str(receiver.id):
             flag1 = False
