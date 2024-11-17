@@ -35,8 +35,12 @@ def post():
 
     send_email(
         receiver.email,
-        f"用户 {sender.username} 在您的主页上发布了新的帖子：<br><br>{content}<br><br>您可以前往您的主页查看详情。:)",
-        '[NINJA Chat] 您有新的帖子'
+        f"""
+用户 <a href=\"https://ninjachat.benx.dev/\">{sender.username}</a> 在您的主页上发布了新的帖子：<br><br>
+{content} <br><br>
+您可以前往<a href=\"https://ninjachat.benx.dev/\">主页</a>查看详情。:)
+        """,
+        "[NINJA Chat] 您有新的帖子"
     )
 
     db.session.commit()
