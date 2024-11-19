@@ -203,6 +203,10 @@ def export_summary():
         bot_sheet.write(0, col, header)
     
     for row, bot in enumerate(bots, start=1):
+        try:
+            average_score = db.session.query(func.avg(Comment.score)).filter(Comment.bot_id == bot.id).scalar()
+        except:
+            average_score = 0
         bot_sheet.write(row, 0, bot.id)
         bot_sheet.write(row, 1, str(bot.user_id))
         bot_sheet.write(row, 2, bot.name)
@@ -213,7 +217,7 @@ def export_summary():
         bot_sheet.write(row, 7, bot.icon)
         bot_sheet.write(row, 8, bot.knowledge_base)
         bot_sheet.write(row, 9, bot.is_default)
-        bot_sheet.write(row, 10, str(bot.rate))
+        bot_sheet.write(row, 10, str(average_score))
     
     total_bots = len(bots)
     bot_sheet.write(len(bots) + 1, 0, f'Number of Bot：{total_bots}')
