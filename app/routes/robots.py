@@ -335,7 +335,7 @@ def post_comment(robotid):
     user = get_user(token)
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
-    has_comment = Comment.query.filter_by(user_id=user.id).all()
+    has_comment = Comment.query.filter_by(user_id=user.id, bot_id=robotid).all()
 
     if has_comment is None or len(has_comment) == 0:
         try:
