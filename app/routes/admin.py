@@ -182,7 +182,7 @@ def export_summary():
 
     # --------- 用户信息工作表 ---------
     user_sheet = workbook.add_sheet('Users')
-    user_headers = ['ID', 'Username', 'Admin',  'Current', 'Rate', 'Credit']
+    user_headers = ['ID', 'Username', 'Admin',  'Current', 'Rate']
     for col, header in enumerate(user_headers):
         user_sheet.write(0, col, header)
     
@@ -190,9 +190,8 @@ def export_summary():
         user_sheet.write(row, 0, str(user.id))
         user_sheet.write(row, 1, user.username)
         user_sheet.write(row, 2, user.admin)
-        user_sheet.write(row, 3, user.current)
-        user_sheet.write(row, 4, user.rate)
-        user_sheet.write(row, 5, user.credit)
+        user_sheet.write(row, 3, str(user.current))
+        user_sheet.write(row, 4, str(user.rate))
     
     total_users = len(users)
     user_sheet.write(len(users) + 1, 0, f'Number of User：{total_users}')
@@ -229,7 +228,7 @@ def export_summary():
     for row, bill in enumerate(bills, start=1):
         bill_sheet.write(row, 0, bill.id)
         bill_sheet.write(row, 1, str(bill.user_id))
-        bill_sheet.write(row, 2, bill.bill)
+        bill_sheet.write(row, 2, str(bill.bill))
         total_margin += bill.bill
     
     bill_sheet.write(len(bills) + 1, 0, f'Total Margin：{total_margin}')
