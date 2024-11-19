@@ -19,7 +19,6 @@ User 表存储用户的用户名，密码、设置、余额和主页信息。
 - `password`: `String`, 哈希后的密码。
 - `settings`: `JSON`, 用户的设置，见[Settings](#Settings)。
 - `current`: `int`, 用户的余额。
-- `credit`: `JSON`, 用户的模型用量余额。
 - `comments`: `JSON`, 用户收到的评论。
 - `posts`: `JSON`, 用户的帖子。
 - `query`: `JSON`, 用户收到的询问。
