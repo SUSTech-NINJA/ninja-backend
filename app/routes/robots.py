@@ -36,10 +36,8 @@ def robot_list():
     try:
         for bot, chat_count in bots:
             try:
-                average_score = 0 if Comment.query(func.avg(Comment.score)) is None \
-                    else Comment.query(func.avg(Comment.score)).scalar()
-                total = 0 if Comment.query(func.count(Comment.score)) is None \
-                    else Comment.query(func.count(Comment.score)).scalar()
+                average_score = Comment.query(func.avg(Comment.score)).scalar()
+                total = Comment.query(func.count(Comment.score)).scalar()
             except:
                 average_score = 0
                 total = 0
@@ -142,8 +140,12 @@ def get_robot(robotid):
 def get_robot_comments(robotid):
     robot = Bot.query.filter_by(id=robotid).first()
     user = User.query.filter_by(id=robot.user_id).first()
-    average_score = Comment.query(func.avg(Comment.score)).scalar()
-    total_score = Comment.query(func.count(Comment.score)).scalar()
+    try:
+        average_score = Comment.query(func.avg(Comment.score)).scalar()
+        total = Comment.query(func.count(Comment.score)).scalar()
+    except:
+        average_score = 0
+        total = 0
     comments = Comment.query.filter_by(bot_id=robotid).all()
     comment_list = [
         {
@@ -164,7 +166,7 @@ def get_robot_comments(robotid):
             "quota": robot.quota,
             "icon": robot.icon,
             "rate": average_score,
-            "popularity": total_score,
+            "popularity": total,
             "comments": comment_list,
             'time': robot.time
         }
@@ -189,8 +191,12 @@ def search_robot():
     if type == 1:
         bot = Bot.query.filter_by(id=int(request.args.get('string'))).first()
         user = User.query.filter_by(id=bot.user_id).first()
-        average_score = db.session.query(func.avg(Comment.score)).scalar()
-        total_score = db.session.query(func.count(Comment.score)).scalar()
+        try:
+            average_score = Comment.query(func.avg(Comment.score)).scalar()
+            total = Comment.query(func.count(Comment.score)).scalar()
+        except:
+            average_score = 0
+            total = 0
         if bot:
             return jsonify({
                 'robotid': bot.id,
@@ -202,7 +208,7 @@ def search_robot():
                 'quota': bot.quota,
                 'icon': bot.icon,
                 'rate': average_score,
-                'popularity': total_score,
+                'popularity': total,
                 'time': bot.time
             }), 200
         else:
@@ -226,7 +232,7 @@ def search_robot():
                     'quota': bot.quota,
                     'icon': bot.icon,
                     'rate': average_score,
-                    'popularity': total_score,
+                    'popularity': total,
                     'time': bot.time
                 })
 
