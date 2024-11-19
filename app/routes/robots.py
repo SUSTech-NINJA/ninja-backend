@@ -221,7 +221,7 @@ def search_robot():
         try:
             for bot in robots:
                 average_score = db.session.query(func.avg(Comment.score)).scalar()
-                total_score = db.session.query(func.count(Comment.score)).scalar()
+                total = db.session.query(func.count(Comment.score)).scalar()
                 response.append({
                     'robotid': bot.id,
                     'robot_name': bot.name,
