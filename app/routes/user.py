@@ -8,8 +8,9 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.models import db, User, Bot  # 确保正确导入你的 User 和 Bot 模型
 from datetime import datetime
 from app.routes.auth import get_user
-from app.models import User, Bot
+from app.models import User, Bot, Comment
 import uuid
+from sqlalchemy import func
 
 user = Blueprint('user', __name__)
 
@@ -143,7 +144,12 @@ def get_user_detail(userid):
     Bot = get_robot_by_uuid(userid)
     BotInfo = []
     for bot in Bot:
-        print(bot.rate)
+        try:
+            average_score = db.session.query(func.avg(Comment.score)).filter(Comment.bot_id == bot.id).scalar()
+            total = db.session.query(func.count(Comment.score)).filter(Comment.bot_id == bot.id).scalar()
+        except:
+            average_score = 0
+            total = 0
         BotInfo.append({
             'robotid': bot.id,
             'robot_name': bot.name,
@@ -154,8 +160,8 @@ def get_user_detail(userid):
             'price': bot.price,
             'quota': bot.quota,
             'icon': bot.icon,
-            'rate': get_average_rate_model(bot),
-            'popularity': 0 if bot.rate is None else len(bot.rate),
+            'rate': average_score,
+            'popularity': total,
             'is_default': bot.is_default,
         })
     PostInfo = []
