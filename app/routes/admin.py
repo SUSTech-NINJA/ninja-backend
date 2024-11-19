@@ -182,7 +182,7 @@ def export_summary():
 
     # --------- 用户信息工作表 ---------
     user_sheet = workbook.add_sheet('Users')
-    user_headers = ['ID', 'Username', 'Admin',  'Current', 'Rate', 'Credit']
+    user_headers = ['ID', 'Username', 'Admin',  'Current', 'Rate']
     for col, header in enumerate(user_headers):
         user_sheet.write(0, col, header)
     
@@ -192,7 +192,6 @@ def export_summary():
         user_sheet.write(row, 2, user.admin)
         user_sheet.write(row, 3, str(user.current))
         user_sheet.write(row, 4, str(user.rate))
-        user_sheet.write(row, 5, str(user.credit))
     
     total_users = len(users)
     user_sheet.write(len(users) + 1, 0, f'Number of User：{total_users}')
