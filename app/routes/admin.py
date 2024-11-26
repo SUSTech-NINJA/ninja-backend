@@ -157,7 +157,7 @@ def export_comment(robot_id):
     workbook = xlwt.Workbook()
     sheet = workbook.add_sheet('Comments')
 
-    headers = ['ID', 'User ID', 'User Name', 'Bot ID', 'Content', 'Score', 'Time']
+    headers = ['ID', 'User ID', 'User Name', 'Bot ID', 'Score', 'Time']
     for col, header in enumerate(headers):
         sheet.write(0, col, header)
 
@@ -166,9 +166,8 @@ def export_comment(robot_id):
         sheet.write(row, 1, str(comment.user_id))
         sheet.write(row, 2, comment.user_name)
         sheet.write(row, 3, comment.bot_id)
-        sheet.write(row, 4, comment.content or '')
-        sheet.write(row, 5, comment.score)
-        sheet.write(row, 6, comment.time.strftime('%Y-%m-%d %H:%M:%S'))
+        sheet.write(row, 4, comment.score)
+        sheet.write(row, 5, comment.time.strftime('%Y-%m-%d %H:%M:%S'))
 
     # save
     time_str = str(datetime.now())
