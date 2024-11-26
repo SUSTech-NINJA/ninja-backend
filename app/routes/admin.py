@@ -202,7 +202,7 @@ def export_summary():
 
     # --------- 机器人信息工作表 ---------
     bot_sheet = workbook.add_sheet('Bots')
-    bot_headers = ['ID', 'User ID', 'Name', 'Base Model', 'Quota', 'Price', 'Prompts', 'Icon', 'Knowledge Base', 'Is Default', 'Rate']
+    bot_headers = ['ID', 'User ID', 'Name', 'Base Model', 'Quota', 'Price', 'Prompts', 'Knowledge Base', 'Is Default', 'Rate']
     for col, header in enumerate(bot_headers):
         bot_sheet.write(0, col, header)
     
@@ -218,10 +218,9 @@ def export_summary():
         bot_sheet.write(row, 4, bot.quota)
         bot_sheet.write(row, 5, bot.price)
         bot_sheet.write(row, 6, str(bot.prompts))
-        bot_sheet.write(row, 7, bot.icon)
-        bot_sheet.write(row, 8, bot.knowledge_base)
-        bot_sheet.write(row, 9, bot.is_default)
-        bot_sheet.write(row, 10, str(average_score))
+        bot_sheet.write(row, 7, bot.knowledge_base)
+        bot_sheet.write(row, 8, bot.is_default)
+        bot_sheet.write(row, 9, str(average_score))
     
     total_bots = len(bots)
     bot_sheet.write(len(bots) + 1, 0, f'Number of Bot：{total_bots}')
@@ -234,11 +233,10 @@ def export_summary():
     
     total_margin = 0
     for row, bill in enumerate(bills, start=1):
-        bill_sheet.write(row, 0, bill.id)
+        bill_sheet.write(row, 0, str(bill.id))
         bill_sheet.write(row, 1, str(bill.user_id))
         bill_sheet.write(row, 2, str(bill.bill))
         total_margin += bill.bill
-    
     bill_sheet.write(len(bills) + 1, 0, f'Total Margin：{total_margin}')
 
     time_str = str(datetime.now())
