@@ -1,5 +1,6 @@
 import os
 import smtplib
+import traceback
 from email.mime.text import MIMEText
 from email.header import Header
 from flask import Blueprint, request, jsonify
@@ -208,8 +209,9 @@ def evaluate_user(uuid):
         "[NINJA Chat] 您有新的评价"
     )
     try:
-        user.rate = user.rate + [int(rate)]
+        user.rate = user.rate + [float(rate)]
     except:
+        traceback.print_exc()
         return jsonify({'msg': 'Invalid rate'}), 400
 
     db.session.commit()
