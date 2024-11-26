@@ -1,4 +1,5 @@
 import time
+import traceback
 from datetime import datetime
 from flask import request, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -108,12 +109,14 @@ def get_robot(robotid):
     robot = Bot.query.filter_by(id=robotid).first()
     user = User.query.filter_by(id=robot.user_id).first()
     try:
-        average_score = Comment.query(func.avg(Comment.score)).scalar()
-        total = Comment.query(func.count(Comment.score)).scalar()
+        average_score = Comment.query.with_entities(func.avg(Comment.score)).scalar()
+        total = Comment.query.with_entities(func.count(Comment.score)).scalar()
     except:
+        traceback.print_exc()
         average_score = 0
         total = 0
     if robot:
+        print(average_score)
         response = {
             "info": {
                 "robotid": robot.id,
