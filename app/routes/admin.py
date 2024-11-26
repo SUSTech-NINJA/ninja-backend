@@ -1,3 +1,5 @@
+import random
+
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func
 import xlwt
@@ -147,7 +149,10 @@ def export_comment(robot_id):
     if user is None:
         return jsonify({'msg': 'Invalid Credential'}), 401
 
+    r = str(random.uniform(1, 10))
+    print(robot_id)
     comments = Comment.query.filter_by(bot_id=robot_id).all()
+    print(comments)
 
     workbook = xlwt.Workbook()
     sheet = workbook.add_sheet('Comments')
@@ -167,10 +172,10 @@ def export_comment(robot_id):
 
     # save
     time_str = str(datetime.now())
-    workbook.save('comments-'+ time_str +'.xls')
-    with open('comments-'+ time_str +'.xls', 'rb') as f:
+    workbook.save('comments-'+ r+'.xls')
+    with open('comments-'+r+ '.xls', 'rb') as f:
         data = f.read()
-        os.remove('comments-'+ time_str +'.xls')
+        # os.remove('comments-'+r+'.xls')
     return data, 200
 
 @admin.route('/admin/export/summary', methods=['GET'])

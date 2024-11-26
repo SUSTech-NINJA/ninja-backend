@@ -164,21 +164,29 @@ def get_user_detail(userid):
             'popularity': total,
             'is_default': bot.is_default,
         })
-    PostInfo = []
+    PostInfos = []
     Post = user.posts
     for _, post in enumerate(Post):
-        PostInfo.append({
+        content = []
+        for c in post['responses']:
+            content.append({
+                'sender': get_user_by_id(c['sender']).username,
+                'icon': c['icon'],
+                'content': c['content'],
+                'timestamp': c['timestamp']
+            })
+        PostInfos.append({
             'postid': post['postid'],
             'userid': post['sender'],
             'username': get_user_by_id(post['sender']).username,
             'time': post['timestamp'],
             'content': post['content'],
-            'responses': post['responses'],
+            'responses': content,
             'rate': 0,
             'type': 'post',
             'icon': get_user_by_id(post['sender']).icon
         })
-    return jsonify({'UserInfo': UserInfo, 'robot': BotInfo, 'post': PostInfo})
+    return jsonify({'UserInfo': UserInfo, 'robot': BotInfo, 'post': PostInfos})
 
 
 @user.route('/evaluate_user/<uuid>', methods=['POST'])
