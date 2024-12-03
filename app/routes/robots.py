@@ -263,8 +263,8 @@ def update_robot(robotid):
         return jsonify({'msg': 'Unauthorized action'}), 403
 
     try:
-        if 'name' in request.form:
-            bot.name = request.form['name']
+        if 'robot_name' in request.form:
+            bot.name = request.form['robot_name']
         if 'base_model_id' in request.form:
             bot.base_model = request.form['base_model_id']
         if 'system_prompt' in request.form:
