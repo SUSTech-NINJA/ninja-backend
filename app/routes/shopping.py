@@ -29,12 +29,11 @@ def buy_package():
     return jsonify({'result': user.current}), 200
 
 
-def rewarding(uuid: str):
+def rewarding(uuid: str, reward):
     try:
-        print("[INFO] Reward success: ", uuid)
-        current = request.form['current']
         user = User.query.filter_by(id=uuid).first()
-        user.current = user.current + int(current)
+        user.current = user.current + reward
         db.session.commit()
+        print("[INFO] Reward success: ", uuid)
     except:
         pass

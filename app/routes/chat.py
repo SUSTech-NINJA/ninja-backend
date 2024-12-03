@@ -76,6 +76,7 @@ def send_chat(chatid, use_model='', should_use_model=False):
         return jsonify({'msg': 'Invalid Credential'}), 401
 
     message = request.get_json().get('message')
+    reward = 0.1 * len(message)
     files = request.get_json().get('files')
     mimetypes = request.get_json().get('mimetypes')
     single_round = request.get_json().get('single-round').lower().startswith('true')
@@ -109,7 +110,7 @@ def send_chat(chatid, use_model='', should_use_model=False):
         }]
 
     # reward user
-    rewarding(cur_model.user_id)
+    rewarding(cur_model.user_id, reward)
 
     chat_info.history = chat_info.history + user_message
     db.session.commit()
