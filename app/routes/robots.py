@@ -259,7 +259,7 @@ def update_robot(robotid):
     if bot is None:
         return jsonify({'msg': 'Bot not found'}), 404
 
-    if bot.user_id != user.id:
+    if bot.user_id != user.id and not user.admin:
         return jsonify({'msg': 'Unauthorized action'}), 403
 
     try:
